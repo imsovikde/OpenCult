@@ -96,14 +96,14 @@ fun OpenCultRootUi(
         val currentOverlay = activeOverlay
         if (currentOverlay != null) {
             when (currentOverlay) {
-                is OverlayRoute.WeighIn -> WeighInScreen(
+                OverlayRoute.WeighIn -> WeighInScreen(
                     onRequestBlePermissions = onRequestBlePermissions,
                     onClose = { activeOverlay = null },
                     onMeasurementCommitted = { id ->
                         activeOverlay = OverlayRoute.MeasurementDetail(id)
                     },
                 )
-                is OverlayRoute.Inspector -> InspectorScreen(
+                OverlayRoute.Inspector -> InspectorScreen(
                     onBack = { activeOverlay = null },
                     onRequestHealthConnectPermissions = onRequestHealthConnectPermissions,
                 )

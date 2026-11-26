@@ -131,9 +131,11 @@ fun OpenCultCalendarSheet(
             }
 
             val firstDay = displayedMonth.atDay(1)
-            val leadingEmpty = (firstDay.dayOfWeek.value - DayOfWeek.MONDAY.value + 7) % 7
+            val mondayOffset = firstDay.dayOfWeek.value - DayOfWeek.MONDAY.value
+            val leadingEmpty = (mondayOffset + 7) % 7
             val totalDays = displayedMonth.lengthOfMonth()
-            val totalCells = ((leadingEmpty + totalDays + 6) / 7) * 7
+            val rowCount = (leadingEmpty + totalDays + 6) / 7
+            val totalCells = rowCount * 7
 
             for (weekStart in 0 until totalCells step 7) {
                 Row(

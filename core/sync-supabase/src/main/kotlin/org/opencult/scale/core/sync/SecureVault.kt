@@ -177,11 +177,12 @@ class SecureVault @Inject constructor(
 
     fun generateLocalRandomTokenHex(byteLen: Int = 16): String {
         val bytes = ByteArray(byteLen)
-        SecureRandom().nextBytes(bytes)
+        secureRandom.nextBytes(bytes)
         return bytes.joinToString("") { "%02x".format(it) }
     }
 
     companion object {
+        private val secureRandom = SecureRandom()
         private const val KEYSTORE_PROVIDER = "AndroidKeyStore"
         private const val KEY_ALIAS = "opencult_aes256_master"
         private const val TRANSFORMATION = "AES/GCM/NoPadding"
