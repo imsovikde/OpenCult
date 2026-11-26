@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">OpenCult</string>
+    <string name="health_connect_rationale_title">OpenCult Health Connect Sync</string>
+    <string name="health_connect_rationale_body">OpenCult writes verified scale measurements (weight, body fat, lean mass, bone mass, body water, BMR, and heart rate) and reads daily steps, sleep duration, and active energy to calibrate your TDEE and trends.</string>
+</resources>

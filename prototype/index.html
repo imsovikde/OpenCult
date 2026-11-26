@@ -1,0 +1,1180 @@
+﻿<!doctype html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>OpenCult — Smart Scale Companion</title>
+  <script>
+    try {
+      var qs = new URLSearchParams(location.search);
+      var qTheme = qs.get('theme');
+      var savedTheme = qTheme || localStorage.getItem('oc-theme');
+      if (savedTheme && savedTheme !== 'dark' && savedTheme !== 'light') {
+        try { savedTheme = JSON.parse(savedTheme); } catch (e) {}
+      }
+      if (savedTheme === 'dark' || savedTheme === 'light') document.documentElement.dataset.theme = savedTheme;
+      if (qs.get('embed') === '1') document.documentElement.classList.add('od-embed');
+    } catch (e) {}
+  </script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+  <style>
+    /* OD-LAYOUT-PRIMITIVES v1 — structure only: display, flex/grid, overflow, wrapping, ratio, geometry.
+       Put this @layer first; product CSS outside the layer wins ordinary layout rules.
+       Native hidden and closed-dialog states take precedence over component display rules. */
+    @layer od-layout {
+      [hidden]:not([hidden="until-found" i]) { display: none !important; }
+      dialog:not([open]) { display: none !important; }
+
+      :where(.od-stack,.od-row,.od-row-top,.od-cluster,.od-grid,.od-field,.od-stat,.od-cell,.od-tile) > :where(*) { min-width: 0; }
+
+      /* containers */
+      .od-stack   { display: flex; flex-direction: column; gap: var(--od-gap, 8px); }
+      .od-row     { display: flex; align-items: center; gap: var(--od-gap, 8px); }
+      .od-row-top { display: flex; align-items: flex-start; gap: var(--od-gap, 8px); }
+      .od-cluster { display: flex; flex-wrap: wrap; align-items: center; gap: var(--od-gap, 8px); }
+      .od-fill    { flex: 1 1 0; min-width: 0; }
+      .od-fixed   { flex: none; }
+      .od-grid    { display: grid; gap: var(--od-gap, 12px); grid-template-columns: repeat(var(--od-cols, 3), minmax(0, 1fr)); }
+
+      /* stacked information: each piece is its own line — never sibling inline spans */
+      .od-stat, .od-field, .od-cell { display: grid; gap: var(--od-gap, 2px); }
+      :where(.od-stat,.od-field,.od-cell) > :where(*) { display: block; }
+      .od-tile { display: grid; grid-template-rows: auto 1fr; }
+      :where(.od-tile) > :where(*) { display: block; }
+
+      /* media keeps its intrinsic ratio by default; never a distorted or cropped
+         cover by accident. height:auto lets the ratio win over an <img height="…">
+         attribute. Cropping to a uniform box is an explicit opt-in: set --od-ratio
+         AND add .od-media-cover together (per the core rule, only where a crop is
+         deliberate — tile thumbs, decorative fills — never on full-frame content). */
+      .od-media { display: block; width: 100%; height: auto; aspect-ratio: var(--od-ratio, auto); }
+      .od-media-cover { object-fit: cover; }
+
+      /* functional inline SVG icons opt into bounded geometry; content SVGs keep their own */
+      .od-icon { display: inline-block; inline-size: var(--od-icon-size, 1em); block-size: var(--od-icon-size, 1em); flex: none; }
+
+      /* data text only — authored copy is rewritten to its budget instead */
+      .od-truncate { display: block; max-width: 100%; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; }
+      .od-clamp-2, .od-clamp-3 { display: -webkit-box; -webkit-box-orient: vertical; overflow: hidden; overflow-wrap: anywhere; }
+      .od-clamp-2 { -webkit-line-clamp: 2; }
+      .od-clamp-3 { -webkit-line-clamp: 3; }
+      .od-lines-2 { min-height: calc(2 * 1.4em); }   /* block-level reservation for a shared baseline */
+      .od-nowrap  { white-space: nowrap; }           /* 数字+单位 · 价格+起 · 日期+星期 */
+      .od-keep    { word-break: keep-all; overflow-wrap: anywhere; } /* CJK labels break at spaces / <wbr> first */
+
+      /* screen skeleton (optional): bars take their own space, the middle scrolls — no padding guessed for chrome */
+      .od-screen { display: grid; grid-template-rows: auto minmax(0, 1fr) auto; height: 100%; }
+      .od-scroll { overflow-y: auto; overscroll-behavior: contain; min-height: 0; }
+
+      /* horizontal rail: the next item peeks at the edge; trailing room survives overflow */
+      .od-rail { display: flex; gap: var(--od-gap, 8px); overflow-x: auto; scroll-snap-type: x proximity; scrollbar-width: none;
+                 padding-inline: var(--od-rail-pad, 16px); scroll-padding-inline: var(--od-rail-pad, 16px); }
+      .od-rail::-webkit-scrollbar { display: none; }
+      :where(.od-rail) > :where(*) { flex: none; scroll-snap-align: start; }
+      :where(.od-rail) > :where(:last-child) { margin-inline-end: var(--od-rail-pad, 16px); }
+
+      .od-spacer { flex: none; visibility: hidden; pointer-events: none; }
+      .od-touch  { min-width: 44px; min-height: 44px; }
+    }
+    :root [hidden]:where(:not([hidden="until-found" i])) { display: none; }
+    /* /OD-LAYOUT-PRIMITIVES v1 */
+
+    /* Native hidden remains authoritative over component flex/grid styles. */
+    [hidden]:not([hidden="until-found" i]) { display: none !important; }
+
+    :root {
+      --phone-screen-width: 393px;
+      --phone-screen-height: 852px;
+      --phone-bezel: 12px;
+      --phone-outer-radius: 60px;
+      --phone-screen-radius: 48px;
+      --phone-safe-top: 59px;
+      --phone-safe-bottom: 34px;
+      --phone-system-fg: #111214;
+      --phone-screen-bg: #f7f7f8;
+      --phone-stage-bg: #e9ebee;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { margin: 0; min-height: 100%; }
+    body {
+      min-height: 100dvh;
+      display: grid;
+      place-items: center;
+      padding: 32px;
+      background:
+        radial-gradient(circle at 50% 16%, rgba(255,255,255,.92), transparent 34%),
+        var(--phone-stage-bg, #e9ebee);
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+      color: #17181a;
+    }
+
+    .phone-frame {
+      position: relative;
+      width: calc(var(--phone-screen-width, 393px) + var(--phone-bezel, 12px) * 2);
+      height: calc(var(--phone-screen-height, 852px) + var(--phone-bezel, 12px) * 2);
+      padding: var(--phone-bezel, 12px);
+      border-radius: var(--phone-outer-radius, 60px);
+      background:
+        linear-gradient(145deg, rgba(255,255,255,.18), transparent 17%),
+        linear-gradient(160deg, #3a3a3d 0%, #1d1d20 47%, #09090b 100%);
+      box-shadow:
+        inset 0 0 0 1px rgba(255,255,255,.13),
+        inset 0 0 0 2px rgba(0,0,0,.9),
+        0 34px 70px -20px rgba(0,0,0,.55),
+        0 12px 28px -12px rgba(0,0,0,.36);
+      isolation: isolate;
+    }
+
+    .phone-frame::before,
+    .phone-frame::after {
+      content: "";
+      position: absolute;
+      z-index: -1;
+      top: 102px;
+      bottom: 102px;
+      width: 3px;
+      border-radius: 3px;
+      background: linear-gradient(
+        to bottom,
+        transparent,
+        rgba(255,255,255,.13) 12%,
+        transparent 22%,
+        transparent 78%,
+        rgba(255,255,255,.08) 90%,
+        transparent
+      );
+    }
+    .phone-frame::before { left: -1px; }
+    .phone-frame::after { right: -1px; }
+
+    .hardware-button {
+      position: absolute;
+      width: 4px;
+      border-radius: 3px;
+      background: linear-gradient(90deg, #050506, #242428 58%, #08080a);
+      box-shadow: inset 0 1px rgba(255,255,255,.08);
+    }
+    .hardware-button.silent { left: -3px; top: 175px; height: 34px; }
+    .hardware-button.volume-up { left: -3px; top: 225px; height: 62px; }
+    .hardware-button.volume-down { left: -3px; top: 299px; height: 62px; }
+    .hardware-button.power { right: -3px; top: 252px; height: 104px; }
+
+    .phone-screen {
+      position: relative;
+      width: var(--phone-screen-width, 393px);
+      height: var(--phone-screen-height, 852px);
+      overflow: hidden;
+      border-radius: var(--phone-screen-radius, 48px);
+      background: var(--phone-screen-bg, #f7f7f8);
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.06);
+    }
+
+    .phone-content {
+      position: absolute;
+      inset: 0;
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
+      scrollbar-width: none;
+      padding-top: var(--phone-safe-top, 59px);
+      padding-bottom: var(--phone-safe-bottom, 34px);
+      background: var(--phone-screen-bg, #f7f7f8);
+    }
+    .phone-content::-webkit-scrollbar { display: none; }
+
+    .punch-hole {
+      position: absolute;
+      z-index: 20;
+      top: 13px;
+      left: 50%;
+      width: 10px;
+      height: 10px;
+      transform: translateX(-50%);
+      border-radius: 50%;
+      background: #05060a;
+      box-shadow: inset 0 0 0 1px rgba(255,255,255,.07), 0 0 0 2px rgba(0,0,0,.22);
+      pointer-events: none;
+    }
+
+    .status-bar {
+      position: absolute;
+      z-index: 15;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: var(--phone-safe-top, 59px);
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      padding: 18px 27px 0;
+      color: var(--phone-system-fg, #111214);
+      font-size: 15px;
+      font-weight: 650;
+      letter-spacing: -.01em;
+      pointer-events: none;
+    }
+    .status-icons { display: inline-flex; align-items: center; gap: 6px; }
+    .status-icons svg { display: block; width: 17px; height: 11px; fill: currentColor; }
+    .status-icons .battery { width: 25px; }
+
+    .gesture-pill {
+      position: absolute;
+      z-index: 20;
+      left: 50%;
+      bottom: 7px;
+      width: 108px;
+      height: 4px;
+      transform: translateX(-50%);
+      border-radius: 999px;
+      background: var(--phone-system-fg, #111214);
+      opacity: .82;
+      pointer-events: none;
+    }
+
+    /* Sample content exists only to make the shell previewable. Replace it. */
+    .sample-app { min-height: 100%; padding: 18px 20px 32px; background: #f7f7f8; }
+    .sample-app h1 { margin: 0; font-size: 30px; letter-spacing: -.035em; }
+    .sample-app p { margin: 8px 0 24px; color: #686b71; line-height: 1.5; }
+    .sample-card {
+      padding: 18px;
+      border: 1px solid #e3e4e7;
+      border-radius: 20px;
+      background: #fff;
+      box-shadow: 0 8px 24px rgba(20,22,26,.06);
+    }
+    .sample-card + .sample-card { margin-top: 12px; }
+
+    /* Presentation scaling: keep the whole handset visible on short viewports. */
+    @media (max-height: 939px) { .phone-frame { zoom: 0.9; } }
+    @media (max-height: 851px) { .phone-frame { zoom: 0.82; } }
+    @media (max-height: 781px) { .phone-frame { zoom: 0.74; } }
+    @media (max-height: 711px) { .phone-frame { zoom: 0.66; } }
+    /* Narrow viewports: the handset chrome collapses and the screen fills the
+       viewport, so the app behaves like a real phone page instead of
+       scrolling sideways. */
+    @media (max-width: 480px) {
+      body { padding: 0; display: block; }
+      .phone-frame { width: 100%; height: 100dvh; padding: 0; border-radius: 0; background: none; box-shadow: none; zoom: 1; }
+      .phone-frame::before, .phone-frame::after, .hardware-button { display: none; }
+      .phone-screen { width: 100%; height: 100%; border-radius: 0; }
+    }
+  </style>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body data-view="gallery">
+  <header class="studio" data-studio>
+    <div class="studio-brand">
+      <span class="studio-mark">OC</span>
+      <span class="od-stat"><strong>OpenCult</strong><span>Prototype Studio</span></span>
+    </div>
+    <div class="studio-controls">
+      <div class="studio-group">
+        <span class="studio-label">View</span>
+        <div class="studio-seg" id="viewMode" role="group" aria-label="Prototype view">
+          <button data-viewmode="gallery" class="is-on" aria-pressed="true">Gallery</button>
+          <button data-viewmode="phone" aria-pressed="false">1:1 Phone</button>
+        </div>
+      </div>
+      <label class="studio-group studio-scale">
+        <span class="studio-label">Connected scale</span>
+        <span class="studio-select">
+          <select id="scaleMode" aria-label="Connected scale">
+            <option value="pro">8E Pro · 56 params</option>
+            <option value="bf01">CS-BF01 4E · 20+ params</option>
+            <option value="proFeet">Pro Feet-Only · 4E fallback</option>
+          </select>
+          <svg class="od-icon" aria-hidden="true"><use href="#i-down"/></svg>
+        </span>
+      </label>
+      <button class="studio-theme" id="studioTheme" aria-label="Switch theme">
+        <svg class="od-icon theme-glyph" aria-hidden="true"><use href="#i-moon"/></svg>
+        <span id="studioThemeLabel">Daylight</span>
+      </button>
+    </div>
+  </header>
+
+  <nav class="screen-rail" id="screenRail" aria-label="Prototype screens" hidden>
+    <button data-jump="onboarding">Onboarding</button>
+    <button data-jump="home">Home</button>
+    <button data-jump="reports">Reports</button>
+    <button data-jump="body">Body Studio</button>
+    <button data-jump="history">History</button>
+    <button data-jump="profiles">Profiles</button>
+    <button data-jump="sync">Sync</button>
+    <button data-jump="inspector">Inspector</button>
+    <button class="rail-cta" data-weighin>Start Weigh-In</button>
+  </nav>
+
+  <main class="gallery" id="gallery" aria-label="All prototype screens">
+    <div class="gallery-head">
+      <div class="od-stat">
+        <span class="eyebrow">OpenCult v2</span>
+        <h1>Multi-screen prototype</h1>
+        <p>Three scales, nine screens, two themes. Every frame stays interactive.</p>
+      </div>
+      <span class="gallery-hint">Tap a frame to use it. Open 1:1 for the full handset.</span>
+    </div>
+    <div class="gallery-grid" id="galleryGrid"></div>
+  </main>
+
+  <div class="phone-frame" id="phoneShell" data-phone-shell data-platform="android" hidden>
+    <span class="hardware-button silent" aria-hidden="true"></span>
+    <span class="hardware-button volume-up" aria-hidden="true"></span>
+    <span class="hardware-button volume-down" aria-hidden="true"></span>
+    <span class="hardware-button power" aria-hidden="true"></span>
+
+    <section class="phone-screen" data-phone-screen>
+      <main class="phone-content" data-phone-content id="phoneContent">
+
+        <svg class="sprite" aria-hidden="true" focusable="false" xmlns="http://www.w3.org/2000/svg">
+          <symbol id="i-back" viewBox="0 0 24 24"><path d="M14.5 5 8 12l6.5 7"/></symbol>
+          <symbol id="i-next" viewBox="0 0 24 24"><path d="M9.5 5 16 12l-6.5 7"/></symbol>
+          <symbol id="i-bell" viewBox="0 0 24 24"><path d="M18 15V10a6 6 0 1 0-12 0v5l-2 3h16l-2-3Z"/><path d="M10 21h4"/></symbol>
+          <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h4M12 17h8"/><circle cx="15" cy="7" r="2"/><circle cx="10" cy="17" r="2"/></symbol>
+          <symbol id="i-menu" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"/></symbol>
+          <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"/></symbol>
+          <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 14.5A8.5 8.5 0 1 1 9.5 3.5a7 7 0 0 0 11 11Z"/></symbol>
+          <symbol id="i-home" viewBox="0 0 24 24"><path d="M4 10.5 12 4l8 6.5V20H4v-9.5Z"/><path d="M9.5 20v-5.5h5V20"/></symbol>
+          <symbol id="i-body" viewBox="0 0 24 24"><circle cx="12" cy="4.8" r="2.3"/><path d="M12 7.5v6M6 10h12M12 13.5 8.3 21M12 13.5 15.7 21"/></symbol>
+          <symbol id="i-reports" viewBox="0 0 24 24"><path d="M4 20V4M4 20h16"/><rect x="7" y="11" width="3" height="6" rx="1"/><rect x="12" y="7" width="3" height="10" rx="1"/><rect x="17" y="13" width="3" height="4" rx="1"/></symbol>
+          <symbol id="i-users" viewBox="0 0 24 24"><circle cx="9" cy="8" r="3"/><path d="M3.5 20a5.5 5.5 0 0 1 11 0"/><path d="M15.5 5.4a3 3 0 0 1 0 5.6M17 14.5a5.5 5.5 0 0 1 3.5 5"/></symbol>
+          <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+          <symbol id="i-share" viewBox="0 0 24 24"><path d="M12 15V4M8 8l4-4 4 4"/><path d="M5 13v6.5h14V13"/></symbol>
+          <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="M16 16l4 4"/></symbol>
+          <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></symbol>
+          <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5 9.5 17 19 7.5"/></symbol>
+          <symbol id="i-down" viewBox="0 0 24 24"><path d="M5 9.5 12 16l7-6.5"/></symbol>
+          <symbol id="i-bt" viewBox="0 0 24 24"><path d="M8 6.5 16 17.5 12 21V3l4 3.5L8 17.5"/></symbol>
+          <symbol id="i-sync" viewBox="0 0 24 24"><path d="M20 12a8 8 0 0 1-13.6 5.7L4 20"/><path d="M4 20v-4h4"/><path d="M4 12a8 8 0 0 1 13.6-5.7L20 4"/><path d="M20 4v4h-4"/></symbol>
+          <symbol id="i-drop" viewBox="0 0 24 24"><path d="M12 3.5c3.5 4.2 5.5 7.2 5.5 9.8a5.5 5.5 0 0 1-11 0c0-2.6 2-5.6 5.5-9.8Z"/></symbol>
+          <symbol id="i-flame" viewBox="0 0 24 24"><path d="M12 21c3.3 0 6-2.7 6-6 0-3.4-3-4.6-3-8-2 1-3 2.6-3 4.5C12 9 10 7 8.5 6 8 9 6 10.6 6 14.5c0 3.5 2.7 6.5 6 6.5Z"/></symbol>
+          <symbol id="i-dumbbell" viewBox="0 0 24 24"><path d="M6.5 8v8M4 9.5v5M17.5 8v8M20 9.5v5M6.5 12h11"/></symbol>
+          <symbol id="i-steps" viewBox="0 0 24 24"><ellipse cx="8.5" cy="8" rx="3" ry="5"/><ellipse cx="16.5" cy="16" rx="3" ry="5"/></symbol>
+          <symbol id="i-scale" viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="4"/><path d="M8 10a4 4 0 0 1 8 0M12 10v2"/></symbol>
+          <symbol id="i-warning" viewBox="0 0 24 24"><path d="M12 4 21 20H3L12 4Z"/><path d="M12 10v4M12 17.2v.3"/></symbol>
+          <symbol id="i-copy" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3"/></symbol>
+          <symbol id="i-export" viewBox="0 0 24 24"><path d="M12 4v10M8 10l4 4 4-4"/><path d="M4 16v4h16v-4"/></symbol>
+          <symbol id="i-history" viewBox="0 0 24 24"><path d="M12 7v5l3 2"/><path d="M4 12a8 8 0 1 1 2.4 5.7"/><path d="M4 20v-4h4"/></symbol>
+          <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3 5 6v5c0 4.5 3 8 7 10 4-2 7-5.5 7-10V6l-7-3Z"/><path d="m9 12 2 2 4-4"/></symbol>
+          <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-7-4.4-7-9.2A3.8 3.8 0 0 1 12 8a3.8 3.8 0 0 1 7 2.8C19 15.6 12 20 12 20Z"/></symbol>
+          <symbol id="i-zap" viewBox="0 0 24 24"><path d="M13 3 6 13h5l-1 8 7-10h-5l1-8Z"/></symbol>
+          <symbol id="i-pause" viewBox="0 0 24 24"><path d="M9 5v14M15 5v14"/></symbol>
+          <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 5l12 7-12 7V5Z"/></symbol>
+          <symbol id="i-chevrons" viewBox="0 0 24 24"><path d="M6 6l5 6-5 6M13 6l5 6-5 6"/></symbol>
+        </svg>
+
+        <!-- ============================= ONBOARDING ============================= -->
+        <section class="screen onboard" data-screen="onboarding">
+          <div class="ob-top">
+            <button class="circle-btn ob-back" id="obBack" aria-label="Previous step" disabled>
+              <svg class="od-icon" aria-hidden="true"><use href="#i-back"/></svg>
+            </button>
+            <button class="skip-pill" id="obSkip">Skip</button>
+          </div>
+
+          <div class="ob-body">
+            <h1 class="ob-title" id="obTitle">All Your Body Composition Insights in One Place</h1>
+            <p class="ob-sub" id="obSub">Connect 4-electrode and 8-electrode Cult scales, log 56 metrics locally, and auto-sync to Google Health Connect.</p>
+            <div class="ob-dots" id="obDots" aria-label="Step 1 of 3"><span class="on"></span><span></span><span></span></div>
+
+            <div class="ob-stage">
+              <div class="ob-panel" data-obpanel="0">
+                <div class="mock">
+                  <div class="mock-screen">
+                    <div class="mock-status"><span>9:41</span><span class="mock-live"></span></div>
+                    <div class="mock-head">
+                      <span class="mock-avatar" id="obAvatar">WA</span>
+                      <span class="od-stat mock-who"><span>Good Morning</span><strong>Wyatt Anderson</strong></span>
+                      <span class="mock-pill-dots" aria-hidden="true"></span>
+                    </div>
+                    <div class="mock-hero">
+                      <div class="mock-hero-top"><span class="mock-chip">Weight</span><span class="mock-mint">Optimal</span></div>
+                      <div class="mock-hero-row">
+                        <div class="od-stat"><span class="mock-value"><strong>74.2</strong><span>kg</span></span><span class="mock-delta">-0.4 kg vs Tue</span></div>
+                        <div class="mock-spark" aria-hidden="true">
+                          <i style="height:44%"></i><i style="height:56%"></i><i style="height:50%"></i><i style="height:62%"></i><i style="height:58%"></i><i style="height:72%"></i><i style="height:66%"></i><i style="height:84%"></i><i class="hi" style="height:78%"></i>
+                        </div>
+                      </div>
+                    </div>
+                    <div class="mock-tiles" aria-hidden="true">
+                      <div class="mt lav"><span>SMM</span><strong>42.8%</strong></div>
+                      <div class="mt sage"><span>Water</span><strong>58.4%</strong></div>
+                      <div class="mt peach"><span>BMR</span><strong>1,742</strong></div>
+                    </div>
+                    <div class="mock-foot"><span>8E Pro</span><span>18.4% body fat</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="ob-panel" data-obpanel="1" hidden>
+                <div class="ob2">
+                  <div class="handle-card">
+                    <div class="handle-visual" aria-hidden="true">
+                      <div class="handle-grip">
+                        <span></span><span></span><span></span><span></span>
+                      </div>
+                      <div class="handle-stem"></div>
+                    </div>
+                    <div class="od-stat">
+                      <strong>8E Handle</strong>
+                      <span>4 grip pads · 20 &amp; 100 kHz</span>
+                    </div>
+                    <span class="hw-tag dark">Pro</span>
+                  </div>
+                  <div class="perm-card">
+                    <div class="perm-head">
+                      <span class="hc-dot">HC</span>
+                      <div class="od-stat"><strong>Google Health Connect</strong><span>5 write types · 3 read types</span></div>
+                    </div>
+                    <div class="perm-row"><span>Weight &amp; body fat</span><span class="badge mint">Allow</span></div>
+                    <div class="perm-row"><span>Steps &amp; sleep</span><span class="badge soft">Read</span></div>
+                    <div class="perm-row"><span>Background sync</span><span class="badge soft">On</span></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="ob-panel" data-obpanel="2" hidden>
+                <div class="ob3">
+                   <div class="member-mini" id="obMemberMini" aria-label="Household profiles"></div>
+                  <div class="sync-card">
+                    <span class="live-dot" aria-hidden="true"></span>
+                    <div class="od-stat"><strong>Supabase Realtime</strong><span>ap-south-1 · Connected</span></div>
+                    <span class="badge mint">0 pending</span>
+                  </div>
+                  <div class="chip-row">
+                    <span class="chip">10 profiles</span><span class="chip">±2.5 kg match</span><span class="chip">Zero refresh</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ob-cta">
+            <button class="btn-next" id="obNext">
+              <span id="obNextLabel">Next</span>
+              <svg class="od-icon" aria-hidden="true"><use href="#i-chevrons"/></svg>
+            </button>
+          </div>
+        </section>
+
+        <!-- =============================== HOME =============================== -->
+        <section class="screen docked" data-screen="home" hidden>
+          <header class="app-head">
+            <button class="avatar" id="avatarBtn" aria-label="Switch household profile"><span id="avatarIni">WA</span></button>
+            <div class="od-stat greet">
+              <span id="greetLine">Good Morning</span>
+              <strong id="greetName">Wyatt Anderson</strong>
+            </div>
+            <div class="head-pill">
+              <button class="pill-btn" id="notifyBtn" aria-label="Sync notifications" title="Sync notifications">
+                <svg class="od-icon" aria-hidden="true"><use href="#i-bell"/></svg>
+                <span class="pip"></span>
+              </button>
+              <button class="pill-btn" id="drawerBtn" aria-label="Open menu and inspector" title="Menu and inspector">
+                <svg class="od-icon" aria-hidden="true"><use href="#i-menu"/></svg>
+              </button>
+            </div>
+          </header>
+
+          <article class="hero" aria-label="Latest body composition">
+            <div class="hero-top">
+              <button class="hero-metric" id="heroMetric" aria-label="Change hero metric">
+                <span id="heroMetricLabel">Weight</span>
+                <svg class="od-icon" aria-hidden="true"><use href="#i-down"/></svg>
+              </button>
+              <div class="hero-tags">
+                <span class="badge mint" id="heroBadge">Normal</span>
+              </div>
+            </div>
+            <div class="hero-bottom">
+              <div class="od-stat hero-stat">
+                <span class="hero-value"><strong class="num" id="heroValue">74.2</strong><span class="unit" id="heroUnit">kg</span></span>
+                <span class="hero-delta" id="heroDelta">8E Pro · -0.4 kg vs Tue</span>
+              </div>
+              <div class="spark" id="heroSpark" aria-hidden="true"></div>
+            </div>
+          </article>
+
+          <div class="ov-head">
+            <h2>Overview</h2>
+            <div class="pager">
+              <button id="pagePrev" aria-label="Previous overview page">
+                <svg class="od-icon" aria-hidden="true"><use href="#i-back"/></svg>
+              </button>
+              <button id="pageNext" class="next" aria-label="Next overview page">
+                <svg class="od-icon" aria-hidden="true"><use href="#i-next"/></svg>
+              </button>
+            </div>
+          </div>
+
+          <div class="bento" id="bentoWrap">
+            <div class="bento-page" data-bentopage="1">
+              <article class="tile tall lav" data-go="body" role="button" tabindex="0" aria-label="Open Body Studio">
+                <div class="tile-head">
+                  <h3 id="bentoSmmTitle">Skeletal Muscle</h3>
+                  <span class="tile-ic" style="color:#7E5BEF"><svg class="od-icon" aria-hidden="true"><use href="#i-dumbbell"/></svg></span>
+                </div>
+                <div class="od-stat tile-stat">
+                  <span class="tile-val"><strong class="num" id="bentoSmm">42.8</strong><span class="unit" id="bentoSmmUnit">%</span></span>
+                  <span class="tile-sub" id="bentoSmmSub" hidden>31.8 kg · Janssen 8E</span>
+                </div>
+                <svg class="wave" id="waveMuscle" viewBox="0 0 170 64" preserveAspectRatio="none" aria-hidden="true"></svg>
+              </article>
+              <article class="tile sm sage" data-go="reports" role="button" tabindex="0" aria-label="Open reports">
+                <div class="tile-head">
+                  <h3>Body Water</h3>
+                  <span class="tile-ic" style="color:#3E7A4E"><svg class="od-icon" aria-hidden="true"><use href="#i-drop"/></svg></span>
+                </div>
+                <div class="od-stat tile-inline">
+                  <span class="tile-val sm"><strong class="num" id="bentoWater">58.4</strong><span class="unit">%</span></span>
+                  <span class="tile-sub" id="bentoWaterSub" hidden>ICW 26.8 L · ECW 16.5 L</span>
+                </div>
+              </article>
+              <article class="tile sm peach" data-go="reports" role="button" tabindex="0" aria-label="Open reports">
+                <div class="tile-head">
+                  <h3>Calories / BMR</h3>
+                  <span class="tile-ic" style="color:#B4683A"><svg class="od-icon" aria-hidden="true"><use href="#i-flame"/></svg></span>
+                </div>
+                <div class="od-stat tile-inline">
+                  <span class="tile-val sm"><strong class="num" id="bentoBmr">1,742</strong><span class="unit">kcal</span></span>
+                  <span class="tile-sub" id="bentoVisc" hidden>Visceral Level 5</span>
+                </div>
+              </article>
+            </div>
+
+            <div class="bento-page" data-bentopage="2" hidden>
+              <article class="tile tall lav" data-go="sync" role="button" tabindex="0" aria-label="Open sync center">
+                <div class="tile-head">
+                  <h3>Steps</h3>
+                  <span class="tile-ic" style="color:#7E5BEF"><svg class="od-icon" aria-hidden="true"><use href="#i-steps"/></svg></span>
+                </div>
+                <div class="od-stat tile-stat">
+                  <span class="tile-val"><strong class="num">8,420</strong></span>
+                  <span class="tile-sub">+12% vs last week · Health Connect</span>
+                </div>
+                <svg class="wave" id="waveSteps" viewBox="0 0 170 64" preserveAspectRatio="none" aria-hidden="true"></svg>
+              </article>
+              <article class="tile sm sage" data-go="sync" role="button" tabindex="0" aria-label="Open sync center">
+                <div class="tile-head">
+                  <h3>Sleep</h3>
+                  <span class="tile-ic" style="color:#3E7A4E"><svg class="od-icon" aria-hidden="true"><use href="#i-moon"/></svg></span>
+                </div>
+                <div class="od-stat tile-inline">
+                  <span class="tile-val sm"><strong class="num">7h 30</strong><span class="unit">min</span></span>
+                  <span class="tile-sub">Deep 1h 42m · 86 score</span>
+                </div>
+              </article>
+              <article class="tile sm peach" data-go="reports" role="button" tabindex="0" aria-label="Open reports">
+                <div class="tile-head">
+                  <h3>Calories Burned</h3>
+                  <span class="tile-ic" style="color:#B4683A"><svg class="od-icon" aria-hidden="true"><use href="#i-flame"/></svg></span>
+                </div>
+                <div class="od-stat tile-inline">
+                  <span class="tile-val sm"><strong class="num">2,149</strong><span class="unit">kcal</span></span>
+                  <span class="tile-sub">Active 684 kcal</span>
+                </div>
+              </article>
+            </div>
+          </div>
+
+          <article class="card trend-card">
+            <div class="row-head">
+              <h3>Body Fat Trend</h3>
+              <span class="select-wrap">
+                <select id="trendRange" aria-label="Trend range">
+                  <option>Weekly</option>
+                  <option>Monthly</option>
+                </select>
+                <svg class="od-icon" aria-hidden="true"><use href="#i-down"/></svg>
+              </span>
+            </div>
+            <div class="trend-meta">
+              <span class="trend-val"><strong class="num" id="trendVal">18.4</strong><span>%</span></span>
+              <span class="live-chip"><i class="pulse" aria-hidden="true"></i>Live · Synced 12s ago</span>
+            </div>
+            <svg class="trend-wave" id="trendWave" viewBox="0 0 320 96" preserveAspectRatio="none" aria-hidden="true"></svg>
+            <div class="trend-days" aria-hidden="true"><span>Sat</span><span>Sun</span><span>Mon</span><span>Tue</span><span>Wed</span><span>Thu</span><span>Fri</span></div>
+          </article>
+        </section>
+
+        <!-- ============================== REPORTS ============================== -->
+        <section class="screen docked" data-screen="reports" hidden>
+          <header class="sub-head">
+            <button class="circle-btn" data-go="home" aria-label="Back to home">
+              <svg class="od-icon" aria-hidden="true"><use href="#i-back"/></svg>
+            </button>
+            <h1>Reports</h1>
+            <button class="circle-btn" id="reportShare" aria-label="Export report">
+              <svg class="od-icon" aria-hidden="true"><use href="#i-share"/></svg>
+            </button>
+          </header>
+
+          <div class="seg seg-track" id="reportPeriod" role="group" aria-label="Report period">
+            <button data-period="daily" aria-pressed="false">Daily</button>
+            <button data-period="weekly" class="is-on" aria-pressed="true">Weekly</button>
+            <button data-period="monthly" aria-pressed="false">Monthly</button>
+          </div>
+
+          <article class="card gauge-card">
+            <label class="report-metric-row">
+              <span class="od-stat">
+                <span class="eyebrow">Metric</span>
+                <strong id="reportMetricLabel">Body Fat %</strong>
+              </span>
+              <span class="studio-select light">
+                <select id="reportMetrics" aria-label="Report metric">
+                  <option value="fat">Body Fat %</option>
+                  <option value="weight">Weight</option>
+                  <option value="smm">Skeletal Muscle</option>
+                  <option value="ecw">ECW / TBW</option>
+                </select>
+                <svg class="od-icon" aria-hidden="true"><use href="#i-down"/></svg>
+              </span>
+            </label>
+            <div class="gauge-wrap">
+              <svg id="gaugeSvg" viewBox="0 0 240 150" role="img" aria-label="Three zone gauge"></svg>
+              <div class="gauge-center">
+                <span class="gauge-val"><strong class="num" id="gaugeVal">18.4</strong><span id="gaugeUnit">%</span></span>
+                <span class="gauge-cap" id="gaugeCap">Body fat · Normal</span>
+              </div>
+            </div>
+            <div class="legend" id="gaugeLegend">
+              <span class="lg"><i style="background:#3B82F6"></i>Low <b>20%</b></span>
+              <span class="lg"><i style="background:#34C77B"></i>Normal <b>56%</b></span>
+              <span class="lg"><i style="background:#F4B428"></i>High <b>24%</b></span>
+            </div>
+          </article>
+
+          <article class="card chart-card">
+            <div class="row-head">
+              <div class="od-stat">
+                <h3 id="chartTitle">Average Body Fat</h3>
+                <span class="chart-sub" id="chartSub">Weekly trend · 7 readings</span>
+              </div>
+              <span class="badge soft" id="chartBadge">18.1 avg</span>
+            </div>
+            <div class="dm-chart" id="dmChart" role="group" aria-label="Daily averages"></div>
+          </article>
+        </section>
+
+        <!-- ============================= BODY STUDIO ============================= -->
+        <section class="screen docked" data-screen="body" hidden>
+          <header class="sub-head">
+            <button class="circle-btn" data-go="home" aria-label="Back to home">
+              <svg class="od-icon" aria-hidden="true"><use href="#i-back"/></svg>
+            </button>
+            <h1>Body Studio</h1>
+            <span class="hw-tag corner" id="bodyScaleTag">8E Pro</span>
+          </header>
+
+          <div class="scale-banner" id="bodyScaleBanner" hidden>
+            <span class="od-stat">
+              <strong id="bodyScaleNote">4E estimates 20+ parameters</strong>
+              <span>Legs and arms are modelled, not measured.</span>
+            </span>
+            <button class="scale-banner-btn" id="bodySwitchScale">Switch to 8E Pro</button>
+          </div>
+
+          <article class="card body-card">
+            <div class="row-head">
+              <div class="od-stat">
+                <h3>Segmental map</h3>
+                <span class="chart-sub" id="bodyMapSub">8-electrode · dual frequency</span>
+              </div>
+              <span class="badge mint" id="zoneBadge">Optimal</span>
+            </div>
+
+            <div class="seg seg-sm" id="segmentMode" role="group" aria-label="Segmental layer">
+              <button class="is-on" data-mode="muscle" aria-pressed="true">Segmental Muscle</button>
+              <button data-mode="fat" aria-pressed="false">Segmental Fat</button>
+            </div>
+            <p class="map-note" id="bodyMapNote" hidden><i class="dot warn"></i>Arms and legs are estimated on 4E. Trunk is measured.</p>
+
+            <div class="body-map">
+              <svg class="figure" viewBox="0 0 220 330" role="group" aria-label="Selectable body segments">
+                <rect class="zone" data-zone="lleg" x="82" y="180" width="26" height="128" rx="13" tabindex="0" role="button" aria-label="Left leg"/>
+                <rect class="zone" data-zone="rleg" x="112" y="180" width="26" height="128" rx="13" tabindex="0" role="button" aria-label="Right leg"/>
+                <rect class="zone" data-zone="larm" x="56" y="64" width="23" height="112" rx="11.5" transform="rotate(10 67.5 64)" tabindex="0" role="button" aria-label="Left arm"/>
+                <rect class="zone" data-zone="rarm" x="141" y="64" width="23" height="112" rx="11.5" transform="rotate(-10 152.5 64)" tabindex="0" role="button" aria-label="Right arm"/>
+                <path class="zone" data-zone="trunk" d="M84 64 Q110 56 136 64 L142 92 Q144 118 133 144 L139 172 Q137 184 110 186 Q83 184 81 172 L87 144 Q76 118 78 92 Z" tabindex="0" role="button" aria-label="Trunk"/>
+                <circle class="fig-base" cx="110" cy="32" r="19"/>
+                <rect class="fig-base" x="102" y="50" width="16" height="12" rx="5"/>
+              </svg>
+
+              <button class="callout c-trunk" data-zone="trunk">
+                <span class="co-val"><span class="num">24.1</span> kg</span>
+                <span class="co-st"><i class="dot cobalt"></i>Optimal</span>
+              </button>
+              <button class="callout c-larm" data-zone="larm">
+                <span class="co-val"><span class="num">1.44</span> kg</span>
+                <span class="co-st"><i class="dot cobalt"></i>Optimal</span>
+              </button>
+              <button class="callout c-rarm" data-zone="rarm">
+                <span class="co-val"><span class="num">1.42</span> kg</span>
+                <span class="co-st"><i class="dot cobalt"></i>Optimal</span>
+              </button>
+              <button class="callout c-lleg" data-zone="lleg">
+                <span class="co-val"><span class="num">8.0</span> kg</span>
+                <span class="co-st"><i class="dot cobalt"></i>Optimal</span>
+              </button>
+              <button class="callout c-rleg" data-zone="rleg">
+                <span class="co-val"><span class="num">7.9</span> kg</span>
+                <span class="co-st"><i class="dot cobalt"></i>Optimal</span>
+              </button>
+            </div>
+
+            <div class="zone-detail" id="zoneDetail">
+              <div class="row-head">
+                <div class="od-stat"><span class="zd-label">Trunk</span><strong class="num" id="zdValue">24.1 kg</strong></div>
+                <span class="badge mint" id="zdBadge">Optimal</span>
+              </div>
+              <div class="pbar"><span class="pbar-opt" style="left:22%;width:52%"></span><span class="pbar-mark" style="left:56%"></span></div>
+              <span class="zd-foot">Reference 18.0–28.0 kg · 8E BIA</span>
+            </div>
+
+            <div class="balance">
+              <div class="bal-row">
+                <div class="bal-head"><span>Arm balance</span><strong class="num" id="balArm">99.1%</strong></div>
+                <div class="bal-track"><span id="balArmBar" style="width:99.1%"></span></div>
+              </div>
+              <div class="bal-row">
+                <div class="bal-head"><span>Leg balance</span><strong class="num" id="balLeg">98.4%</strong></div>
+                <div class="bal-track"><span id="balLegBar" style="width:98.4%"></span></div>
+              </div>
+              <div class="alm-row">
+                <div class="od-stat"><span>Appendicular lean mass / h²</span><strong><span class="num" id="almVal">8.4</span> <small>kg/m²</small></strong></div>
+                <span class="badge mint" id="almBadge">Optimal</span>
+              </div>
+            </div>
+          </article>
+
+          <article class="card params-card">
+            <div class="row-head">
+              <div class="od-stat">
+                <h3>Parameter explorer</h3>
+                <span class="chart-sub" id="paramCount">56 parameters · 7 groups</span>
+              </div>
+              <span class="badge soft" id="paramBadge">8E</span>
+            </div>
+            <div class="search-field">
+              <svg class="od-icon" aria-hidden="true"><use href="#i-search"/></svg>
+              <input id="paramSearch" type="search" placeholder="Search parameters" aria-label="Search parameters" autocomplete="off">
+            </div>
+            <div id="paramGroups"></div>
+            <div class="empty" id="paramEmpty" hidden>
+              <strong>No parameter found</strong>
+              <span>Try “water”, “visceral” or a segment name.</span>
+            </div>
+          </article>
+        </section>
+
+        <!-- ============================== PROFILES ============================== -->
+        <section class="screen docked" data-screen="profiles" hidden>
+          <header class="sub-head">
+            <button class="circle-btn" data-go="home" aria-label="Back to home">
+              <svg class="od-icon" aria-hidden="true"><use href="#i-back"/></svg>
+            </button>
+            <h1>Profiles</h1>
+            <span class="hw-tag corner" id="profileCount">9 / 10</span>
+          </header>
+          <p class="screen-sub">Up to 10 household members on one scale. The closest reading within ±2.5 kg is recognised automatically.</p>
+          <div class="profile-grid" id="profileGrid"></div>
+        </section>
+
+        <!-- ============================== HISTORY =============================== -->
+        <section class="screen" data-screen="history" hidden>
+          <header class="sub-head">
+            <button class="circle-btn" data-go="home" aria-label="Back to home">
+              <svg class="od-icon" aria-hidden="true"><use href="#i-back"/></svg>
+            </button>
+            <h1>History</h1>
+            <button class="circle-btn" data-go="sync" aria-label="Open sync center">
+              <svg class="od-icon" aria-hidden="true"><use href="#i-sync"/></svg>
+            </button>
+          </header>
+
+          <div class="mini-stats">
+            <div class="mini-stat"><span>Weigh-ins</span><strong class="num" id="histCount">7</strong><small>last 30 days</small></div>
+            <div class="mini-stat"><span>Avg weight</span><strong class="num">74.4 <small>kg</small></strong><small>-0.6 kg trend</small></div>
+            <div class="mini-stat"><span>HC synced</span><strong class="num">100<small>%</small></strong><small>0 pending</small></div>
+          </div>
+
+          <article class="card ledger-card">
+            <div class="row-head">
+              <div class="od-stat"><h3>Weigh-in ledger</h3><span class="chart-sub">Tap two rows to compare all metrics</span></div>
+              <span class="badge soft" id="compareCount">0 / 2</span>
+            </div>
+            <div id="historyList"></div>
+          </article>
+
+          <div class="compare-bar">
+            <span class="od-stat"><strong id="compareLabel">Select two weigh-ins</strong><span>Side-by-side delta across 56 metrics</span></span>
+            <button class="btn btn-primary" id="compareBtn" disabled>Compare</button>
+          </div>
+        </section>
+
+        <!-- ============================== SYNC CENTER ============================ -->
+        <section class="screen" data-screen="sync" hidden>
+          <header class="sub-head">
+            <button class="circle-btn" data-go="home" aria-label="Back to home">
+              <svg class="od-icon" aria-hidden="true"><use href="#i-back"/></svg>
+            </button>
+            <h1>Sync Center</h1>
+            <button class="circle-btn" data-go="inspector" aria-label="Open packet inspector">
+              <svg class="od-icon" aria-hidden="true"><use href="#i-bt"/></svg>
+            </button>
+          </header>
+
+          <article class="card sync-block">
+            <div class="sync-head">
+              <span class="sync-logo hc">HC</span>
+              <div class="od-stat"><strong>Google Health Connect</strong><span>Connected · nexus account</span></div>
+              <span class="badge mint"><i class="dot green"></i>Active</span>
+            </div>
+            <div class="sync-section">
+              <span class="eyebrow">Auto-write to Health Connect</span>
+              <div id="hcOut"></div>
+            </div>
+            <div class="sync-section">
+              <span class="eyebrow">Inbound context</span>
+              <div id="hcIn"></div>
+            </div>
+            <div class="sync-foot">
+              <button class="btn btn-ghost" id="backfillBtn">Backfill all history</button>
+              <span class="sync-note" id="backfillNote">1,284 records ready</span>
+            </div>
+            <div class="ledger-counts">
+              <div class="od-stat"><span>Written</span><strong class="num">1,102</strong></div>
+              <div class="od-stat"><span>Read</span><strong class="num">1,284</strong></div>
+              <div class="od-stat"><span>Conflicts</span><strong class="num">0</strong></div>
+            </div>
+          </article>
+
+          <article class="card sync-block">
+            <div class="sync-head">
+              <span class="sync-logo supa">S</span>
+              <div class="od-stat"><strong>Supabase Realtime</strong><span>Connected · ap-south-1</span></div>
+              <span class="badge mint"><i class="dot green"></i>Live</span>
+            </div>
+            <div class="supa-row">
+              <div class="od-stat"><span>Account</span><strong>wyatt@opencult.dev</strong></div>
+              <div class="od-stat"><span>Outbox</span><strong class="num">0 pending</strong></div>
+            </div>
+            <div class="supa-row">
+              <div class="od-stat"><span>Channel</span><strong class="mono">room:opencult-wyatt</strong></div>
+              <div class="od-stat"><span>Replication</span><strong class="mono">zero-refresh</strong></div>
+            </div>
+            <div class="sync-foot">
+              <button class="btn btn-ghost" id="exportJson">Export JSON</button>
+              <button class="btn btn-ghost" id="exportCsv">Export CSV</button>
+            </div>
+          </article>
+        </section>
+
+        <!-- =========================== PACKET INSPECTOR ========================= -->
+        <section class="screen" data-screen="inspector" hidden>
+          <header class="sub-head">
+            <button class="circle-btn" data-go="home" aria-label="Back to home">
+              <svg class="od-icon" aria-hidden="true"><use href="#i-back"/></svg>
+            </button>
+            <h1>Packet Inspector</h1>
+            <button class="circle-btn" id="framePlay" aria-label="Pause live capture">
+              <svg class="od-icon" aria-hidden="true"><use href="#i-pause"/></svg>
+            </button>
+          </header>
+
+          <article class="console-card">
+            <div class="console-head">
+              <span class="live-chip dark"><i class="pulse" aria-hidden="true"></i><span id="captureState">Live capture</span></span>
+              <span class="mono console-dev" id="consoleDev">CULT Pro · 0xCF</span>
+            </div>
+            <div class="console" id="frameList" aria-live="off" aria-label="Raw BLE frames"></div>
+            <div class="console-foot">
+              <span class="mono" id="frameStats">CF 11B · BE 13B ×2 · DF 17B ×4</span>
+              <button class="btn-mini" id="copyCapture"><svg class="od-icon" aria-hidden="true"><use href="#i-copy"/></svg>Copy Capture JSON</button>
+            </div>
+          </article>
+
+          <article class="card ohms-card">
+            <div class="row-head">
+              <div class="od-stat"><h3 id="ohmTitle">10-channel impedance</h3><span class="chart-sub" id="ohmSub">0xBE Set A · Set B · ohm</span></div>
+              <span class="badge mint" id="ohmBadge">Stable</span>
+            </div>
+            <div class="ohm-grid" id="ohmGrid"></div>
+          </article>
+
+          <button class="btn btn-ghost wide" data-go="sync">Open Sync Center</button>
+        </section>
+
+      </main>
+
+      <nav class="dock" id="dock" aria-label="Primary" hidden>
+        <div class="dock-pill">
+          <button class="dock-btn" data-nav="home" aria-label="Home">
+            <svg class="od-icon" aria-hidden="true"><use href="#i-home"/></svg>
+          </button>
+          <button class="dock-btn" data-nav="body" aria-label="Body map">
+            <svg class="od-icon" aria-hidden="true"><use href="#i-body"/></svg>
+          </button>
+          <button class="dock-btn" data-nav="reports" aria-label="Reports">
+            <svg class="od-icon" aria-hidden="true"><use href="#i-reports"/></svg>
+          </button>
+          <button class="dock-btn" data-nav="profiles" aria-label="Profiles">
+            <svg class="od-icon" aria-hidden="true"><use href="#i-users"/></svg>
+          </button>
+        </div>
+        <button class="fab" id="fab" aria-label="Start live weigh-in">
+          <svg class="od-icon" aria-hidden="true"><use href="#i-plus"/></svg>
+        </button>
+      </nav>
+
+      <div class="status-bar" aria-hidden="true">
+        <span class="sb-time">9:41</span>
+        <span class="status-icons">
+          <svg viewBox="0 0 18 12"><path d="M1 10.5h2V8H1v2.5Zm4 0h2V5.5H5v5Zm4 0h2V3H9v7.5Zm4 0h2V.5h-2v10Z"/></svg>
+          <svg viewBox="0 0 18 12"><path d="M9 11.2 7.2 9.4a2.55 2.55 0 0 1 3.6 0L9 11.2Zm4.1-4.1-1.35 1.35a3.9 3.9 0 0 0-5.5 0L4.9 7.1a5.8 5.8 0 0 1 8.2 0Zm3-3-1.35 1.35a8.15 8.15 0 0 0-11.5 0L1.9 4.1a10.05 10.05 0 0 1 14.2 0Z"/></svg>
+          <span class="sb-5g">5G</span>
+          <svg class="battery" viewBox="0 0 27 12"><path fill-rule="evenodd" d="M2.5 1h19A2.5 2.5 0 0 1 24 3.5v5a2.5 2.5 0 0 1-2.5 2.5h-19A2.5 2.5 0 0 1 0 8.5v-5A2.5 2.5 0 0 1 2.5 1Zm0 1A1.5 1.5 0 0 0 1 3.5v5A1.5 1.5 0 0 0 2.5 10h19A1.5 1.5 0 0 0 23 8.5v-5A1.5 1.5 0 0 0 21.5 2h-19Zm.5 1h17.5A1.5 1.5 0 0 1 22 4.5v3A1.5 1.5 0 0 1 20.5 9H3V3Zm22 1.5a1.5 1.5 0 0 1 0 3v-3Z"/></svg>
+        </span>
+      </div>
+      <div class="punch-hole" aria-hidden="true"></div>
+      <div class="gesture-pill" aria-hidden="true"></div>
+
+      <!-- ============================== OVERLAYS ============================== -->
+      <div class="overlay" id="ovMembers" hidden>
+        <div class="scrim" data-close="ovMembers"></div>
+        <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="membersTitle">
+          <div class="sheet-grab" aria-hidden="true"></div>
+          <header class="sheet-head">
+            <div class="od-stat"><span class="eyebrow">Household</span><h2 id="membersTitle">Switch profile</h2></div>
+            <button class="circle-btn" data-close="ovMembers" aria-label="Close profile switcher">
+              <svg class="od-icon" aria-hidden="true"><use href="#i-close"/></svg>
+            </button>
+          </header>
+          <div class="member-list" id="memberList"></div>
+          <button class="btn btn-ghost wide" data-go="profiles" data-close-first="ovMembers">Manage all profiles</button>
+        </div>
+      </div>
+
+      <div class="overlay" id="ovNotify" hidden>
+        <div class="scrim" data-close="ovNotify"></div>
+        <div class="sheet" role="dialog" aria-modal="true" aria-labelledby="notifyTitle">
+          <div class="sheet-grab" aria-hidden="true"></div>
+          <header class="sheet-head">
+            <div class="od-stat"><span class="eyebrow">Live sync</span><h2 id="notifyTitle">Notifications</h2></div>
+            <button class="circle-btn" data-close="ovNotify" aria-label="Close notifications">
+              <svg class="od-icon" aria-hidden="true"><use href="#i-close"/></svg>
+            </button>
+          </header>
+          <div class="notify-list">
+            <div class="notify-row"><span class="notify-ic mint"><svg class="od-icon" aria-hidden="true"><use href="#i-check"/></svg></span><div class="od-stat"><strong>Weigh-in written to Health Connect</strong><span>Weight · Body fat · Lean mass · 12s ago</span></div></div>
+            <div class="notify-row"><span class="notify-ic cobalt"><svg class="od-icon" aria-hidden="true"><use href="#i-sync"/></svg></span><div class="od-stat"><strong>Supabase Realtime · 0 pending</strong><span>Room replication confirmed · ap-south-1</span></div></div>
+            <div class="notify-row"><span class="notify-ic lavender"><svg class="od-icon" aria-hidden="true"><use href="#i-bt"/></svg></span><div class="od-stat"><strong>Cult Smart Scale Pro ready</strong><span>8E handle connected · battery 92%</span></div></div>
+            <div class="notify-row"><span class="notify-ic sage"><svg class="od-icon" aria-hidden="true"><use href="#i-users"/></svg></span><div class="od-stat"><strong>Household member synced</strong><span>Owen Hale updated his profile · today</span></div></div>
+          </div>
+          <button class="btn btn-ghost wide" data-go="sync" data-close-first="ovNotify">Open Sync Center</button>
+        </div>
+      </div>
+
+      <div class="overlay" id="ovDrawer" hidden>
+        <div class="scrim" data-close="ovDrawer"></div>
+        <div class="sheet drawer" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
+          <div class="sheet-grab" aria-hidden="true"></div>
+          <header class="sheet-head">
+            <div class="od-stat"><span class="eyebrow">Inspector</span><h2 id="drawerTitle">OpenCult menu</h2></div>
+            <button class="circle-btn" data-close="ovDrawer" aria-label="Close menu">
+              <svg class="od-icon" aria-hidden="true"><use href="#i-close"/></svg>
+            </button>
+          </header>
+          <div class="drawer-status">
+            <div class="od-stat"><span>Sync engine</span><strong>5 of 5 channels live</strong></div>
+            <span class="badge mint"><i class="dot green"></i>Zero refresh</span>
+          </div>
+          <div class="drawer-menu">
+            <button class="menu-row" data-go="history"><span class="menu-ic"><svg class="od-icon" aria-hidden="true"><use href="#i-history"/></svg></span><span class="od-stat"><strong>History ledger</strong><span>Compare any two weigh-ins</span></span><svg class="od-icon chev" aria-hidden="true"><use href="#i-next"/></svg></button>
+            <button class="menu-row" data-go="sync"><span class="menu-ic"><svg class="od-icon" aria-hidden="true"><use href="#i-sync"/></svg></span><span class="od-stat"><strong>Sync Center</strong><span>Health Connect &amp; Supabase</span></span><svg class="od-icon chev" aria-hidden="true"><use href="#i-next"/></svg></button>
+            <button class="menu-row" data-go="inspector"><span class="menu-ic"><svg class="od-icon" aria-hidden="true"><use href="#i-bt"/></svg></span><span class="od-stat"><strong>Packet Inspector</strong><span>Raw 0xCF · 0xBE · 0xDF frames</span></span><svg class="od-icon chev" aria-hidden="true"><use href="#i-next"/></svg></button>
+            <button class="menu-row" data-go="body"><span class="menu-ic"><svg class="od-icon" aria-hidden="true"><use href="#i-body"/></svg></span><span class="od-stat"><strong>Body Studio</strong><span>5 segments · 56 parameters</span></span><svg class="od-icon chev" aria-hidden="true"><use href="#i-next"/></svg></button>
+          </div>
+          <button class="menu-row theme-row" id="themeRow">
+            <span class="menu-ic"><svg class="od-icon theme-glyph" aria-hidden="true"><use href="#i-moon"/></svg></span>
+            <span class="od-stat"><strong>Appearance</strong><span id="themeLabel">Daylight Clinical Pastel</span></span>
+            <span class="mini-switch" aria-hidden="true"><i></i></span>
+          </button>
+        </div>
+      </div>
+
+      <div class="overlay" id="ovWeighin" hidden>
+        <div class="scrim" data-close="ovWeighin"></div>
+        <div class="sheet sheet-lg" role="dialog" aria-modal="true" aria-labelledby="wiTitle">
+          <div class="sheet-grab" aria-hidden="true"></div>
+          <header class="sheet-head">
+            <div class="od-stat"><span class="eyebrow" id="wiEyebrow">Cult Smart Scale Pro</span><h2 id="wiTitle">Live weigh-in</h2></div>
+            <button class="circle-btn" data-close="ovWeighin" aria-label="Close live weigh-in">
+              <svg class="od-icon" aria-hidden="true"><use href="#i-close"/></svg>
+            </button>
+          </header>
+
+          <div class="wi-scale-pick" role="group" aria-label="Scale used for this weigh-in">
+            <button data-wiscale="pro" class="is-on" aria-pressed="true"><span class="wi-sp-mark">8E</span><span class="od-stat"><strong>Scale Pro</strong><span>8-electrode</span></span></button>
+            <button data-wiscale="bf01" aria-pressed="false"><span class="wi-sp-mark alt">4E</span><span class="od-stat"><strong id="wiBfStrong">CS-BF01</strong><span>4-electrode</span></span></button>
+          </div>
+
+          <ol class="wi-steps" id="wiSteps">
+            <li class="is-on"><span class="ws-dot">1</span><span>Search</span></li>
+            <li><span class="ws-dot">2</span><span>Settle</span></li>
+            <li><span class="ws-dot">3</span><span>Contact</span></li>
+            <li><span class="ws-dot">4</span><span>Synced</span></li>
+          </ol>
+
+          <div class="wi-body">
+            <section class="wi-stage" data-wstage="1">
+              <div class="radar" aria-hidden="true"><i></i><i></i><i></i>
+                <svg class="od-icon" aria-hidden="true"><use href="#i-bt"/></svg>
+              </div>
+              <div class="od-stat wi-lead"><strong>Scanning for Cult scales</strong><span>BLE · 2.4 GHz · household room</span></div>
+              <div class="device-row" data-device="pro"><span class="device-ic">8E</span><div class="od-stat"><strong>Cult Smart Scale Pro</strong><span>8-electrode · dual-frequency · 56 params</span></div><span class="badge mint" id="wiProBadge">Found</span></div>
+              <div class="device-row" data-device="bf01"><span class="device-ic alt">4E</span><div class="od-stat"><strong>Cult Smart Body Fat Scale</strong><span>CS-BF01 · 4-electrode · 20+ params</span></div><span class="badge soft" id="wiBfBadge">Nearby</span></div>
+            </section>
+
+            <section class="wi-stage" data-wstage="2" hidden>
+              <div class="od-stat wi-readout">
+                <span class="wi-weight"><strong class="num" id="wiWeight">0.00</strong><span>kg</span></span>
+                <span class="wi-sub" id="wiSettleSub">Weight settling · 0xCF stream</span>
+              </div>
+              <div class="wi-track"><span id="wiSettleBar"></span></div>
+              <div class="mono-ticker" id="wiTicker">CF 0B 00 00 00 00 00 00 00 00 00 00</div>
+              <p class="wi-note" id="wiSettleNote">Stand still with both feet centred on the ITO glass.</p>
+            </section>
+
+            <section class="wi-stage" data-wstage="3" hidden>
+              <div class="pads">
+                <div class="pad-group">
+                  <span class="eyebrow">Foot pads</span>
+                  <div class="pad-grid" id="padFoot">
+                    <span class="pad is-on"></span><span class="pad is-on"></span>
+                    <span class="pad is-on"></span><span class="pad is-on"></span>
+                  </div>
+                </div>
+                <div class="ring-wrap">
+                  <svg viewBox="0 0 88 88" class="ring" aria-hidden="true">
+                    <circle class="ring-track" cx="44" cy="44" r="34"/>
+                    <circle class="ring-fill" id="wiRing" cx="44" cy="44" r="34"/>
+                  </svg>
+                  <span class="ring-val num" id="wiRingVal">0%</span>
+                </div>
+                <div class="pad-group" id="padHandleGroup">
+                  <span class="eyebrow">Handle pads</span>
+                  <div class="pad-grid" id="padHandle">
+                    <span class="pad is-on"></span><span class="pad is-on"></span>
+                    <span class="pad is-on"></span><span class="pad is-on"></span>
+                  </div>
+                </div>
+              </div>
+              <div class="od-stat wi-lead"><strong id="wiContactLead">8-electrode contact active</strong><span id="wiContactSub">Dual-frequency sweep 0xBE · 20 kHz / 100 kHz</span></div>
+              <div class="ohm-chips" id="wiOhms"></div>
+              <div class="handshake mono" id="wiHandshake" hidden></div>
+            </section>
+
+            <section class="wi-stage" data-wstage="4" hidden>
+              <div class="wi-done">
+                <span class="done-check"><svg class="od-icon" aria-hidden="true"><use href="#i-check"/></svg></span>
+                <div class="od-stat wi-readout">
+                  <span class="wi-weight"><strong class="num" id="wiFinal">74.2</strong><span>kg</span></span>
+                  <span class="wi-sub" id="wiFinalSub">18.4% fat · 31.8 kg muscle</span>
+                </div>
+              </div>
+              <div class="pick-wrap" id="wiPickWrap" hidden>
+                <span class="eyebrow">Two profiles within 2.5 kg — choose member</span>
+                <div class="pick-list" id="wiPickList"></div>
+              </div>
+              <div class="done-list">
+                <div class="done-row"><span class="notify-ic mint"><svg class="od-icon" aria-hidden="true"><use href="#i-check"/></svg></span><div class="od-stat"><strong>Saved to Room</strong><span class="mono">room:opencult-wyatt · 1 row</span></div><span class="badge mint">OK</span></div>
+                <div class="done-row" id="wiHealthRow"><span class="notify-ic mint"><svg class="od-icon" aria-hidden="true"><use href="#i-check"/></svg></span><div class="od-stat"><strong>Written to Health Connect</strong><span id="wiHealthSub">Weight · Body fat · Lean mass</span></div><span class="badge mint">OK</span></div>
+                <div class="done-row"><span class="notify-ic mint"><svg class="od-icon" aria-hidden="true"><use href="#i-check"/></svg></span><div class="od-stat"><strong>Pushed to Supabase Realtime</strong><span class="mono">ap-south-1 · 0 pending</span></div><span class="badge mint">OK</span></div>
+              </div>
+            </section>
+          </div>
+
+          <footer class="wi-foot">
+            <div class="switch-row">
+              <span class="od-stat"><strong>Simulate 2 profiles within 2.5 kg</strong><span>Demonstrate the ambiguity picker</span></span>
+              <button class="switch" id="wiAmbiguity" role="switch" aria-checked="false" aria-label="Simulate ambiguous profile"></button>
+            </div>
+            <button class="btn btn-primary wide" id="wiAction">Start scan</button>
+          </footer>
+        </div>
+      </div>
+
+      <div class="overlay" id="ovCompare" hidden>
+        <div class="scrim" data-close="ovCompare"></div>
+        <div class="sheet sheet-lg" role="dialog" aria-modal="true" aria-labelledby="compareTitle">
+          <div class="sheet-grab" aria-hidden="true"></div>
+          <header class="sheet-head">
+            <div class="od-stat"><span class="eyebrow">Side-by-side</span><h2 id="compareTitle">Weigh-in comparison</h2></div>
+            <button class="circle-btn" data-close="ovCompare" aria-label="Close comparison">
+              <svg class="od-icon" aria-hidden="true"><use href="#i-close"/></svg>
+            </button>
+          </header>
+          <div id="compareBody"></div>
+        </div>
+      </div>
+
+      <div class="overlay center" id="ovAddMember" hidden>
+        <div class="scrim" data-close="ovAddMember"></div>
+        <div class="sheet dialog" role="dialog" aria-modal="true" aria-labelledby="addTitle">
+          <header class="sheet-head">
+            <div class="od-stat"><span class="eyebrow">Household</span><h2 id="addTitle">Add member</h2></div>
+            <button class="circle-btn" data-close="ovAddMember" aria-label="Close add member">
+              <svg class="od-icon" aria-hidden="true"><use href="#i-close"/></svg>
+            </button>
+          </header>
+          <div class="form">
+            <div class="field">
+              <label for="amName">Full name</label>
+              <input id="amName" type="text" autocomplete="off" placeholder="e.g. Jordan Lee">
+              <span class="err" id="errName" hidden>Enter at least 2 characters.</span>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="amAge">Age</label>
+                <input id="amAge" type="number" inputmode="numeric" placeholder="28">
+                <span class="err" id="errAge" hidden>Age must be 2–110.</span>
+              </div>
+              <div class="field">
+                <label for="amSex">Sex</label>
+                <select id="amSex"><option>Female</option><option>Male</option><option>Other</option></select>
+              </div>
+            </div>
+            <div class="field-row">
+              <div class="field">
+                <label for="amHeight">Height (cm)</label>
+                <input id="amHeight" type="number" inputmode="numeric" placeholder="170">
+                <span class="err" id="errHeight" hidden>Height must be 80–230 cm.</span>
+              </div>
+              <div class="field">
+                <label for="amTarget">Target weight (kg)</label>
+                <input id="amTarget" type="number" inputmode="decimal" placeholder="65.0">
+                <span class="err" id="errTarget" hidden>Target must be 20–300 kg.</span>
+              </div>
+            </div>
+            <p class="form-note">Recognition window is ±2.5 kg around the last reading.</p>
+            <div class="form-actions">
+              <button class="btn btn-ghost" type="button" data-close="ovAddMember">Cancel</button>
+              <button class="btn btn-primary" id="amSave" type="button">Add member</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
