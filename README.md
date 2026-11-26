@@ -44,7 +44,7 @@ flowchart LR
 | [prompts/01_OPEN_DESIGN_PROTOTYPE_PROMPT.md](prompts/01_OPEN_DESIGN_PROTOTYPE_PROMPT.md) | Initial Open Design `# Prototype` prompt |
 | [prompts/04_OPEN_DESIGN_PROTOTYPE_V2_PROMPT.md](prompts/04_OPEN_DESIGN_PROTOTYPE_V2_PROMPT.md) | Upgraded v2 Open Design prompt fixing Android bezel, multi-screen gallery, minimalist screenshot parity, and live 4E vs 8E scale switching |
 | [prompts/02_AGENTS_GOVERNANCE_PROMPT.md](prompts/02_AGENTS_GOVERNANCE_PROMPT.md) | Governance prompt for `AGENTS.md` and strict UI enforcement |
-| [prompts/03_END_TO_END_ANDROID_BUILD_PROMPT.md](prompts/03_END_TO_END_ANDROID_BUILD_PROMPT.md) | Vertical-slice Android implementation prompt (`S0` .. `S10`) |
+| [prompts/03_END_TO_END_ANDROID_BUILD_PROMPT.md](prompts/03_END_TO_END_ANDROID_BUILD_PROMPT.md) | Pro long-horizon autonomous build prompt (`ralph-loop`, `/goal`, `/boost`, `rea`, Health Connect, Play Protect, Cloudflare security, Compose UI) |
 | [supabase/migrations/20261126000001_opencult_initial_schema.sql](supabase/migrations/20261126000001_opencult_initial_schema.sql) | Supabase Postgres schema, 10-profile trigger, strict RLS, and Realtime publication |
 
 ---

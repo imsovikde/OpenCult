@@ -7,9 +7,13 @@ Both/**
 .env.*
 !.env.example
 local.properties
+keystore/
+keystore.properties
 *.jks
 *.keystore
+*.p12
 google-services.json
+.scratch/
 
 # Supabase local CLI state
 supabase/.temp/
