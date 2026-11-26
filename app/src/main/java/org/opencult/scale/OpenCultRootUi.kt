@@ -36,8 +36,8 @@ import org.opencult.scale.feature.weighin.WeighInScreen
 data class OpenCultRouteNavInfo(val routeTag: String) : NavigationEventInfo()
 
 sealed interface OverlayRoute {
-    data object WeighIn : OverlayRoute
-    data object Inspector : OverlayRoute
+    object WeighIn : OverlayRoute
+    object Inspector : OverlayRoute
     data class MeasurementDetail(val measurementId: String) : OverlayRoute
 }
 
