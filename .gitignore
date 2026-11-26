@@ -32,6 +32,8 @@ captures/
 *.apk
 *.aab
 
-# OS artifacts
+# OS and Python artifacts
 .DS_Store
 Thumbs.db
+__pycache__/
+*.pyc
