@@ -38,7 +38,8 @@ flowchart LR
 | [TRD.md](TRD.md) | Stack, BLE wire protocol (`0xCF` / `0xBE` / `0xDF`), BIA math, PostgreSQL DDL, RLS, Realtime, Health Connect |
 | [INVARIANTS.md](INVARIANTS.md) | 16 hard architectural and UI invariants (`INV-01` .. `INV-16`) |
 | [DRD.md](DRD.md) | Design tokens, custom Canvas charts, 9-screen layout spec, Daylight Pastel & Obsidian Night modes |
-| [prompts/01_OPEN_DESIGN_PROTOTYPE_PROMPT.md](prompts/01_OPEN_DESIGN_PROTOTYPE_PROMPT.md) | Ready-to-paste Open Design `# Prototype` prompt matching your reference screenshot |
+| [prompts/01_OPEN_DESIGN_PROTOTYPE_PROMPT.md](prompts/01_OPEN_DESIGN_PROTOTYPE_PROMPT.md) | Initial Open Design `# Prototype` prompt |
+| [prompts/04_OPEN_DESIGN_PROTOTYPE_V2_PROMPT.md](prompts/04_OPEN_DESIGN_PROTOTYPE_V2_PROMPT.md) | Upgraded v2 Open Design prompt fixing Android bezel, multi-screen gallery, minimalist screenshot parity, and live 4E vs 8E scale switching |
 | [prompts/02_AGENTS_GOVERNANCE_PROMPT.md](prompts/02_AGENTS_GOVERNANCE_PROMPT.md) | Governance prompt for `AGENTS.md` and strict UI enforcement |
 | [prompts/03_END_TO_END_ANDROID_BUILD_PROMPT.md](prompts/03_END_TO_END_ANDROID_BUILD_PROMPT.md) | Vertical-slice Android implementation prompt (`S0` .. `S10`) |
 | [supabase/migrations/20261126000001_opencult_initial_schema.sql](supabase/migrations/20261126000001_opencult_initial_schema.sql) | Supabase Postgres schema, 10-profile trigger, strict RLS, and Realtime publication |
