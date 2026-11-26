@@ -1,0 +1,33 @@
+# Local reverse-engineering reference clones (never commit)
+Both/
+Both/**
+
+# Secrets and local environment files
+.env
+.env.*
+!.env.example
+local.properties
+*.jks
+*.keystore
+google-services.json
+
+# Supabase local CLI state
+supabase/.temp/
+supabase/.branches/
+.vercel/
+
+# Android, Gradle, and IDE build outputs
+.gradle/
+build/
+*/build/
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+
+# OS artifacts
+.DS_Store
+Thumbs.db
