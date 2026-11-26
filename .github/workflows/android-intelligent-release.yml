@@ -78,6 +78,13 @@ jobs:
         if: steps.signing.outputs.has_signing == 'true'
         run: |
           ./gradlew :app:lintRelease :app:analyzeReleaseR8Config :app:assembleRelease :app:bundleRelease --no-daemon --max-workers=2 --console=plain
+          TAG_LABEL="${{ inputs.release_version != '' && inputs.release_version || github.ref_name }}"
+          cp app/build/outputs/apk/release/app-release.apk "app/build/outputs/apk/release/opencult-${TAG_LABEL}-release.apk"
+          python scripts/generate_release_notes.py \
+            --version "$TAG_LABEL" \
+            --artifacts "app/build/outputs/apk/release/opencult-${TAG_LABEL}-release.apk" app/build/outputs/bundle/release/app-release.aab \
+            --sha256-out SHA256SUMS.txt \
+            --output release_notes.md
 
       - name: Upload debug and release artifacts
         uses: actions/upload-artifact@v4
@@ -89,6 +96,7 @@ jobs:
             app/build/outputs/bundle/release/*.aab
             app/build/reports/r8/r8-config-analyzer-release.html
             release_notes.md
+            SHA256SUMS.txt
           if-no-files-found: warn
 
       - name: Publish GitHub Release on version tag or manual release
@@ -99,7 +107,8 @@ jobs:
           name: "OpenCult ${{ inputs.release_version != '' && inputs.release_version || github.ref_name }}"
           body_path: release_notes.md
           files: |
-            app/build/outputs/apk/release/*.apk
-            app/build/outputs/bundle/release/*.aab
+            app/build/outputs/apk/release/opencult-*-release.apk
+            app/build/outputs/bundle/release/app-release.aab
+            SHA256SUMS.txt
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
