@@ -1,0 +1,632 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 1,
+    "identityHash": "86f2916ece4e2e0945a4becec7adb23e",
+    "entities": [
+      {
+        "tableName": "household_profiles",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `account_id` TEXT NOT NULL, `display_name` TEXT NOT NULL, `avatar_color` TEXT NOT NULL, `biological_sex` TEXT NOT NULL, `birth_date` TEXT NOT NULL, `height_cm` REAL NOT NULL, `activity_level` TEXT NOT NULL, `athlete_mode` INTEGER NOT NULL, `auto_match_window_kg` REAL NOT NULL, `target_weight_kg` REAL, `target_body_fat_pct` REAL, `is_primary_hc_user` INTEGER NOT NULL, `sort_order` INTEGER NOT NULL, `created_at_ms` INTEGER NOT NULL, `updated_at_ms` INTEGER NOT NULL, `deleted_at_ms` INTEGER, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "accountId",
+            "columnName": "account_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "displayName",
+            "columnName": "display_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "avatarColor",
+            "columnName": "avatar_color",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "biologicalSex",
+            "columnName": "biological_sex",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "birthDate",
+            "columnName": "birth_date",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "heightCm",
+            "columnName": "height_cm",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "activityLevel",
+            "columnName": "activity_level",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "athleteMode",
+            "columnName": "athlete_mode",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "autoMatchWindowKg",
+            "columnName": "auto_match_window_kg",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "targetWeightKg",
+            "columnName": "target_weight_kg",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "targetBodyFatPct",
+            "columnName": "target_body_fat_pct",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "isPrimaryHcUser",
+            "columnName": "is_primary_hc_user",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "sortOrder",
+            "columnName": "sort_order",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtMs",
+            "columnName": "created_at_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtMs",
+            "columnName": "updated_at_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deletedAtMs",
+            "columnName": "deleted_at_ms",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_household_profiles_account_id_sort_order",
+            "unique": false,
+            "columnNames": [
+              "account_id",
+              "sort_order"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_household_profiles_account_id_sort_order` ON `${TABLE_NAME}` (`account_id`, `sort_order`)"
+          }
+        ]
+      },
+      {
+        "tableName": "scale_devices",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `account_id` TEXT NOT NULL, `ble_mac_or_id` TEXT NOT NULL, `advertised_name` TEXT NOT NULL, `model_tier` TEXT NOT NULL, `electrode_count` INTEGER NOT NULL, `firmware_notes` TEXT, `last_battery_pct` INTEGER, `last_seen_at_ms` INTEGER, `created_at_ms` INTEGER NOT NULL, `updated_at_ms` INTEGER NOT NULL, `deleted_at_ms` INTEGER, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "accountId",
+            "columnName": "account_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "bleMacOrId",
+            "columnName": "ble_mac_or_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "advertisedName",
+            "columnName": "advertised_name",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "modelTier",
+            "columnName": "model_tier",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "electrodeCount",
+            "columnName": "electrode_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "firmwareNotes",
+            "columnName": "firmware_notes",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "lastBatteryPct",
+            "columnName": "last_battery_pct",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "lastSeenAtMs",
+            "columnName": "last_seen_at_ms",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "createdAtMs",
+            "columnName": "created_at_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtMs",
+            "columnName": "updated_at_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deletedAtMs",
+            "columnName": "deleted_at_ms",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_scale_devices_account_id_ble_mac_or_id",
+            "unique": true,
+            "columnNames": [
+              "account_id",
+              "ble_mac_or_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_scale_devices_account_id_ble_mac_or_id` ON `${TABLE_NAME}` (`account_id`, `ble_mac_or_id`)"
+          }
+        ]
+      },
+      {
+        "tableName": "measurements",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `account_id` TEXT NOT NULL, `profile_id` TEXT NOT NULL, `scale_device_id` TEXT, `measured_at_ms` INTEGER NOT NULL, `local_date` TEXT NOT NULL, `source` TEXT NOT NULL, `assignment_state` TEXT NOT NULL, `weight_kg` REAL NOT NULL, `heart_rate_bpm` INTEGER, `impedance_50khz_ohm` REAL, `impedance_high_ohm` REAL, `metrics_json` TEXT NOT NULL, `provenance_json` TEXT NOT NULL, `notes` TEXT, `mutation_id` TEXT NOT NULL, `created_at_ms` INTEGER NOT NULL, `updated_at_ms` INTEGER NOT NULL, `deleted_at_ms` INTEGER, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "accountId",
+            "columnName": "account_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "profileId",
+            "columnName": "profile_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "scaleDeviceId",
+            "columnName": "scale_device_id",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "measuredAtMs",
+            "columnName": "measured_at_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "localDate",
+            "columnName": "local_date",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "source",
+            "columnName": "source",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "assignmentState",
+            "columnName": "assignment_state",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "weightKg",
+            "columnName": "weight_kg",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "heartRateBpm",
+            "columnName": "heart_rate_bpm",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "impedance50KhzOhm",
+            "columnName": "impedance_50khz_ohm",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "impedanceHighOhm",
+            "columnName": "impedance_high_ohm",
+            "affinity": "REAL"
+          },
+          {
+            "fieldPath": "metricsJson",
+            "columnName": "metrics_json",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "provenanceJson",
+            "columnName": "provenance_json",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "notes",
+            "columnName": "notes",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "mutationId",
+            "columnName": "mutation_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAtMs",
+            "columnName": "created_at_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "updatedAtMs",
+            "columnName": "updated_at_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "deletedAtMs",
+            "columnName": "deleted_at_ms",
+            "affinity": "INTEGER"
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_measurements_profile_id_local_date_measured_at_ms",
+            "unique": false,
+            "columnNames": [
+              "profile_id",
+              "local_date",
+              "measured_at_ms"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_measurements_profile_id_local_date_measured_at_ms` ON `${TABLE_NAME}` (`profile_id`, `local_date`, `measured_at_ms`)"
+          },
+          {
+            "name": "index_measurements_account_id_updated_at_ms",
+            "unique": false,
+            "columnNames": [
+              "account_id",
+              "updated_at_ms"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_measurements_account_id_updated_at_ms` ON `${TABLE_NAME}` (`account_id`, `updated_at_ms`)"
+          }
+        ]
+      },
+      {
+        "tableName": "raw_ble_packets",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `account_id` TEXT NOT NULL, `measurement_id` TEXT NOT NULL, `seq_no` INTEGER NOT NULL, `characteristic_uuid` TEXT NOT NULL, `packet_type_hex` TEXT NOT NULL, `payload_hex` TEXT NOT NULL, `checksum_valid` INTEGER, `decoded_impedances_json` TEXT NOT NULL, `captured_at_ms` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "accountId",
+            "columnName": "account_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "measurementId",
+            "columnName": "measurement_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "seqNo",
+            "columnName": "seq_no",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "characteristicUuid",
+            "columnName": "characteristic_uuid",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "packetTypeHex",
+            "columnName": "packet_type_hex",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "payloadHex",
+            "columnName": "payload_hex",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "checksumValid",
+            "columnName": "checksum_valid",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "decodedImpedancesJson",
+            "columnName": "decoded_impedances_json",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "capturedAtMs",
+            "columnName": "captured_at_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_raw_ble_packets_measurement_id_seq_no",
+            "unique": false,
+            "columnNames": [
+              "measurement_id",
+              "seq_no"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_raw_ble_packets_measurement_id_seq_no` ON `${TABLE_NAME}` (`measurement_id`, `seq_no`)"
+          }
+        ]
+      },
+      {
+        "tableName": "health_connect_sync_ledger",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `account_id` TEXT NOT NULL, `measurement_id` TEXT NOT NULL, `hc_record_type` TEXT NOT NULL, `client_record_id` TEXT NOT NULL, `client_record_version` INTEGER NOT NULL, `hc_record_uid` TEXT, `sync_status` TEXT NOT NULL, `last_error` TEXT, `synced_at_ms` INTEGER, `updated_at_ms` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "accountId",
+            "columnName": "account_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "measurementId",
+            "columnName": "measurement_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hcRecordType",
+            "columnName": "hc_record_type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "clientRecordId",
+            "columnName": "client_record_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "clientRecordVersion",
+            "columnName": "client_record_version",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "hcRecordUid",
+            "columnName": "hc_record_uid",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "syncStatus",
+            "columnName": "sync_status",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastError",
+            "columnName": "last_error",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "syncedAtMs",
+            "columnName": "synced_at_ms",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "updatedAtMs",
+            "columnName": "updated_at_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_health_connect_sync_ledger_account_id_client_record_id",
+            "unique": true,
+            "columnNames": [
+              "account_id",
+              "client_record_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_health_connect_sync_ledger_account_id_client_record_id` ON `${TABLE_NAME}` (`account_id`, `client_record_id`)"
+          },
+          {
+            "name": "index_health_connect_sync_ledger_measurement_id",
+            "unique": false,
+            "columnNames": [
+              "measurement_id"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_health_connect_sync_ledger_measurement_id` ON `${TABLE_NAME}` (`measurement_id`)"
+          }
+        ]
+      },
+      {
+        "tableName": "sync_outbox",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `entity_type` TEXT NOT NULL, `entity_id` TEXT NOT NULL, `operation` TEXT NOT NULL, `payload_json` TEXT NOT NULL, `mutation_id` TEXT NOT NULL, `attempt_count` INTEGER NOT NULL, `last_error` TEXT, `created_at_ms` INTEGER NOT NULL, `next_attempt_at_ms` INTEGER NOT NULL, PRIMARY KEY(`id`))",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "entityType",
+            "columnName": "entity_type",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "entityId",
+            "columnName": "entity_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "operation",
+            "columnName": "operation",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "payloadJson",
+            "columnName": "payload_json",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mutationId",
+            "columnName": "mutation_id",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "attemptCount",
+            "columnName": "attempt_count",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lastError",
+            "columnName": "last_error",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "createdAtMs",
+            "columnName": "created_at_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "nextAttemptAtMs",
+            "columnName": "next_attempt_at_ms",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": false,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_sync_outbox_next_attempt_at_ms",
+            "unique": false,
+            "columnNames": [
+              "next_attempt_at_ms"
+            ],
+            "orders": [],
+            "createSql": "CREATE INDEX IF NOT EXISTS `index_sync_outbox_next_attempt_at_ms` ON `${TABLE_NAME}` (`next_attempt_at_ms`)"
+          }
+        ]
+      }
+    ],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '86f2916ece4e2e0945a4becec7adb23e')"
+    ]
+  }
+}
