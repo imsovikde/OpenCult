@@ -1,165 +1,181 @@
-# OpenCult End-to-End Android Pro Build Prompt (Long-Horizon Autonomous Edition)
+# OpenCult Ultimate End-to-End Android Pro Prompt (Remediation, Full Build, Release CI/CD & Verification)
 
-Use this **Pro** prompt to execute the complete end-to-end native Android implementation of **OpenCult** from scratch in long-horizon autonomous mode, combining Ralph Loop persistence, Goal completion locking, Boost multi-perspective review, Reverse Engineer Anything (`rea` MCP + source references), native Google Health Connect integration, Play Protect hardening, Cloudflare-aligned repository security, Supabase Realtime sync, and strict `MICROENGINEERING.md` / `MOTIONENGINEERING.md` Compose UI craft.
+Use this prompt as the single governing instruction for fixing every existing defect in `app/`, `core/`, and `feature/`, completing reverse engineering, native Health Connect, precision sound feedback, full 20-parameter (`Cult Smart Scale`) vs 50+-parameter (`Cult Smart Scale Pro`) UI/math/filtering, R8 release obfuscation, GitHub Actions automated intelligent releases, `README.md` attribution, and granular GitHub commits without stopping until every verification passes.
 
 ---
 
 ```text
-You are operating as a principal Android systems, BLE reverse-engineering, Health Connect, security, and Jetpack Compose motion engineer building **OpenCult** end to end in `c:\Users\imsov\OneDrive\Desktop\Open Scale project`.
+You are operating as a principal Android systems architect, BLE reverse engineer, quantitative body-composition engineer, Jetpack Compose motion/UI specialist, and DevSecOps release engineer inside `c:\Users\imsov\OneDrive\Desktop\Open Scale project`.
 
-### 0. Non-Negotiable Autonomy Contract (`ralph-loop` + `goal` + `boost` + `verification-before-completion`)
+### 0. Non-Negotiable Long-Horizon Autonomy Contract (`/goal` + `ralph-loop` + `/boost`)
 
-You are strictly authorized and required to run autonomously in a continuous, relentless verification loop until EVERY milestone (`S0` through `S10`), EVERY build, EVERY test, EVERY security & Play Protect audit, AND EVERY UI/visual check passes after your final edit:
-
-1. **Mandatory Skill & MCP Activation Order (Load Before Coding):**
-   - Load and follow these local skills explicitly before touching source:
-     - Autonomous loops & rigor: `ralph-loop`, `goal`, `boost`, `verification-before-completion`, `tdd`, `systematic-debugging`, `apex-bug-hunter`
-     - Reverse engineering: `reverse-engineer-anything` (plus `rea` MCP server)
-     - Security & Play Protect: `security-audit`, `android-permissions-security`, `android-intent-security`, `play-policy-insights`, `r8-analyzer`, `anr-audit-and-fix`
-     - Cloudflare repository/edge security standards (for any companion Worker, Pages config, Access endpoint, or security review): `cloudflare`, `workers-best-practices`, `cloudflare-one`, `wrangler`, `cf-cli`
-     - Android Compose UI, Motion & Verification: `edge-to-edge`, `jetpack-compose-performance`, `navigation-event`, `testing-setup`, `android-cli`, `humanizer`
-2. **Ralph Loop Discipline (`ralph` 0.6.0 / `/goal`):**
-   - Check `ralph status` / initialize or run cleanly when operating an outer `ralph` loop, and operate under the `/goal` Phase 1-5 continuous verification loop at all times.
-   - **You do NOT have permission to stop early, yield a partial checkpoint, claim "left as an exercise", or return with failing/skipped checks.**
-   - Every time any bug, BLE parse defect, Health Connect duplicate, sync race, UI violation, or motion hitch is found during the loop, apply the **same-commit atomic regression gate (`INV-23`)**: append a mechanistic row to `HALL_OF_SHAME.md`, tighten `INVARIANTS.md` (and `MICROENGINEERING.md` / `MOTIONENGINEERING.md` if UI or motion changed), and write a red-green unit/UI regression test before continuing.
-   - Append `<!-- GOAL_COMPLETE -->` to your final report ONLY after every acceptance criterion below is mechanically proven with quoted commands and exit `0` outputs after your last edit. If genuinely blocked by a missing physical device, hardware scale, or external credential, state the exact blocker and exit code honestly rather than inventing a pass (`AGENTS.md §0`).
+1. **Mandatory Skill & MCP Activation (Load Before Any Edit):**
+   - Execute in strict autonomous discipline using these exact local skills and MCP servers:
+     - Autonomous loops & rigor: `ralph-loop` (`ralph 0.6.0` CLI), `goal` (`/goal`), `boost` (`/boost`), `verification-before-completion`, `tdd`, `systematic-debugging`, `apex-bug-hunter`, `testing-setup`
+     - Reverse engineering: `reverse-engineer-anything` + `rea` MCP server (`open_binary`, `inspect_android_package`, `search_android_classes`, `inspect_android_class`, `inspect_android_method`, `trace_android_references`, `inspect_adb_client`, `list_adb_devices`, `pull_adb_file`, `inspect_packet_capture`, `build_reconstruction_obligation_ledger`, `evaluate_reconstruction_coverage`, `verify_reconstruction`, `list_unknowns`, `close_binary`)
+     - Security & Google Play Protect: `security-audit`, `android-permissions-security`, `android-intent-security`, `play-policy-insights`, `r8-analyzer`, `anr-audit-and-fix`
+     - Cloudflare repository & edge security: `cloudflare`, `workers-best-practices`, `cloudflare-one`, `wrangler`, `cf-cli`
+     - Android UI, motion, device checks, & writing: `edge-to-edge`, `jetpack-compose-performance`, `navigation-event`, `android-cli`, `humanizer`
+     - Persistent memory: `second-brain` MCP server (`project="opencult"`)
+2. **Continuous Self-Repair Loop (Zero Premature Exit):**
+   - Do NOT return, ask for permission mid-task, skip an emulator/UI screenshot check, or summarize incomplete work. Keep looping through diagnose -> fix -> build -> test -> inspect rendered PNG screenshots until EVERY requirement in Sections 1 through 9 passes after your final edit.
+   - Whenever you fix ANY bug or discover a new defect class, apply `INV-23` in the same commit: append a mechanistic row to `HALL_OF_SHAME.md`, tighten `INVARIANTS.md` (and `MICROENGINEERING.md` / `MOTIONENGINEERING.md` for UI/motion issues), and write a failing-then-passing regression test.
+   - Emit `<!-- GOAL_COMPLETE -->` ONLY when every single build, unit/Robolectric test, R8 release APK verification, security audit, visual PNG screenshot audit, GitHub commit/push, CI workflow, and Second Brain sync is 100% verified with exact command outputs and exit codes. If physically blocked (e.g., no physical BLE scale hardware powered on or unconfirmed email credential), keep local simulated/emulator suites separated cleanly and state `Verified / Unverified / Unknown` boundaries with raw errors (`AGENTS.md §0`).
 
 ---
 
-### 1. Pre-Flight Governance, Second Brain, and Toolchain Reconnaissance
+### 1. Mandatory Reconnaissance & Verified Defect Ledger Already Found in Workspace
 
-1. Read ALL governing documents in full before writing line 1 of Kotlin or XML:
-   - `AGENTS.md` (root project governance & Honesty Contract)
-   - `TRD.md`, `PRD.md`, `INVARIANTS.md` (`INV-01`..`INV-23`)
-   - `HALL_OF_SHAME.md` (`SHAME-001`..`SHAME-007`)
-   - `MICROENGINEERING.md` and `MOTIONENGINEERING.md`
-   - `DRD.md` and `prototype/` (`index.html`, `styles.css`, `app.js`, resolving known `SHAME-006` drift via `INV-22`)
-   - `supabase/migrations/20261126000001_opencult_initial_schema.sql`
-2. Execute the Second Brain Recall Gate for `project="opencult"` (`list_recent(n=5)`, `list_projects()`, `recall(..., project="opencult", topK=8)`, `recall(..., tag="failure", hops=1)`, `brief(project="opencult")`, enforcing `get(id)` truncation guard on any truncated item). If `second-brain` returns a `302` Cloudflare Access redirect or disconnect, report it plainly once and proceed without inventing memory claims.
-3. Inspect the host environment cleanly (never assume):
-   - Verify JDK paths (e.g. Microsoft JDK 17 / Android Studio JBR), `C:\Users\imsov\AppData\Local\Android\Sdk` (`platforms/android-34`, `android-36`, `build-tools/36.0.0`), `keytool`, `adb`, `supabase`, and `ralph`.
-   - Verify `.env.local` exists locally (gitignored) with `OPENCULT_SUPABASE_URL` and `OPENCULT_SUPABASE_ANON_KEY`, and verify `Both/` (`Both/occult`, `Both/openscale`), `.env*` (except `.env.example`), and `keystore/` remain gitignored (`INV-15`).
-
----
-
-### 2. Deep Dual-Target Reverse Engineering (`reverse-engineer-anything` + `Both/` + `rea` MCP)
-
-You MUST thoroughly reverse-engineer all three Cult scale operational modes and verify both reference repositories without guessing or fabricating decoded bytes:
-
-1. **Source-Repository Reference Audit (`Both/openscale` and `Both/occult`):**
-   - Inspect `Both/openscale`: `CultSmartScaleProHandler.kt`, `BodyPod2Handler.kt`, `OneByoneHandler.kt`, `RunstarR6Handler.kt`, `StandardImpedanceLib.kt`, `S400BodyComposition.kt`, `Wla25BodyComposition.kt` (note: verified `openScale` has ZERO Google Health Connect implementation, so Health Connect is built completely natively in `:core:healthconnect`). Retain GPL-3.0 headers and explicit upstream attribution on adapted math/protocol code (`AGENTS.md §3.3`).
-   - Inspect `Both/occult`: `CONTRACTS.md`, `research/cult_scale_protocol.md`, `js/ble/parser.js`, `js/metrics/bodycomp.js`, `daemon/internal/protocol/frame.go`, `daemon/internal/protocol/session.go`.
-2. **Shipped-Artifact & Capture Reverse Engineering (`reverse-engineer-anything` skill + `rea` MCP):**
-   - Whenever any shipped vendor APK (Cult Fit / Cultsport) or captured `btsnoop_hci.log` / PCAP / ADB device is supplied or attached:
-     - Invoke `rea` MCP tools (`open_binary`, `inspect_android_package`, `search_android_classes`, `inspect_android_class`, `inspect_android_method`, `trace_android_references`, `inspect_adb_client`, `list_adb_devices`, `pull_adb_file`, `inspect_packet_capture`) following `reverse-engineer-anything/SKILL.md`.
-     - Maintain a formal `Reconstruction Obligation Ledger` (`build_reconstruction_obligation_ledger`, `evaluate_reconstruction_coverage`, `verify_reconstruction`, `list_unknowns`, closing with `close_binary`) mapping every BLE UUID, `0xCF` status byte, `0xBE` dual-frequency 10-channel impedance offset/scale factor, and `0xDF` byte field to concrete observed Evidence vs inferred candidates vs unknowns.
-   - Strictly preserve `INV-01` and `INV-02`: NEVER claim an encrypted/proprietary `0xDF` field is decoded unless backed by captured packet evidence + deterministic unit tests; otherwise persist `0xDF` frames verbatim in `raw_ble_packets` and compute parameters cleanly via verified equations.
-3. **All Three Cult Hardware Tiers (Full Parameter Retrieval & Immediate Member Logging):**
-   - **Cult Smart Scale Pro (8-Electrode, 50+ / 56 parameters):** Connect `CULT*` over GATT `0xFFF0` (`0xFFF1` write, `0xFFF4` notify), parse `0xCF` (`0x01` settle -> `0x08` handle BIA -> `0x05` complete), decode **all 10 impedance channels across both 13-byte `0xBE` packets** (`Set A[0..4]` in pkt `0x00` and `Set B[0..4]` in pkt `0x01`, fixing `openScale`'s `SHAME-004` single-channel bug), verify XOR checksums (`INV-01`), capture all 4 17-byte `0xDF` packets verbatim, pass plausibility gates (`INV-03`: whole-body `50 kHz` in `150..1200 ohm`, non-zero limb channels), and derive all 56 parameters (`PRD:M-01..M-56`: Weight, BMI, Body Fat, Fat Mass, FFM, Subq Fat, Visceral Fat, TBW, **Cole dual-frequency ECW / ICW / ECW-TBW**, BCM, **Janssen SMM / SMI**, Bone Mass, Protein, Katch-McArdle BMR, TDEE, Metabolic Age, Composite Score, **5-segment LA/RA/TR/LL/RL Muscle & Fat with mass-sum conservation**, Bilateral Symmetry, ALM).
-   - **Cult Smart Scale Pro (Feet-Only, handle unheld, `0xCF` status `0x00`):** Suppress 8E segmental/ECW claims cleanly (`INV-03`) and fall back transparently to weight + explicit `ANTHROPOMETRIC_ESTIMATE`.
-   - **Cult Smart Body Fat Scale (`CS-BF01`, 4-Electrode, 20+ parameters):** Execute `0xFFF1` handshake (`FD 37` mode/unit, `F1` RTC sync with `3000 ms` fallback timer, `F2 00` history / `F2 01` clear), enforce `WeightLockFrames = 3` / `HRLockFrames = 3` and `OneByone` 20-byte ATT coalesced-duplicate vs 18-byte+ history disambiguation (`INV-21`, `SHAME-005`), retrieve weight + heart rate / impedance where emitted by firmware, compute 20+ parameters labeled explicitly with `MetricProvenance`.
-   - **Immediate Member-Scoped Logging:** Auto-assign weigh-ins ONLY on unique rolling-weight match within `auto_match_window_kg` (default `2.5 kg`); 0 or 2+ matches mark `assignment_state = 'pending_review'` and open the interactive member chooser (`INV-09`) before assigning. Every locked reading commits permanently per `profile_id` and calendar day (`LocalDate`) in Room in `< 50 ms` (`INV-06`).
+Before touching code:
+1. Read `AGENTS.md`, `TRD.md`, `PRD.md`, `INVARIANTS.md`, `HALL_OF_SHAME.md`, `MICROENGINEERING.md`, `MOTIONENGINEERING.md`, `DRD.md`, `supabase/migrations/20261126000001_opencult_initial_schema.sql`, and run the Second Brain Recall Gate (`list_recent`, `list_projects`, `recall`, `brief`, `get(id)` truncation guard).
+2. Read the local reverse-engineering references under gitignored `Both/` (`Both/openscale`: `CultSmartScaleProHandler.kt`, `BodyPod2Handler.kt`, `OneByoneHandler.kt`, `RunstarR6Handler.kt`, `StandardImpedanceLib.kt`, `S400BodyComposition.kt`, `Wla25BodyComposition.kt`; `Both/occult`: `CONTRACTS.md`, `research/cult_scale_protocol.md`, `js/ble/uuids.js`, `js/ble/parser.js`, `js/metrics/bodycomp.js`, `daemon/internal/protocol/frame.go`, `daemon/internal/protocol/session.go`).
+3. Confirm `.gitignore` keeps `Both/`, `.env*` (except `.env.example`), `keystore/`, `keystore.properties`, `*.jks`, `*.p12`, and `.scratch/` ignored (`INV-15`). Inspect local Android SDK (`android-34`, `android-36`), JDK (`17` / Android Studio JBR), `adb`, `keytool`, `supabase`, and `gh` CLI auth status.
+4. Immediately remediate ALL confirmed defects already present in the current uncommitted workspace code (`app/`, `core/`, `feature/`):
+   - **Defect 1 (Uncommitted Workspace + Missing CI & README Attribution):** Current Kotlin code and `SHAME-008..012` / `INV-24..25` edits sit uncommitted; `.github/workflows/` does not exist; `README.md` lacks full release/attribution documentation and build badges.
+   - **Defect 2 (Broken `DetachedObsidianDock` & Overlapping Bottom Bars, visual screenshot bug):** `DetachedDock.kt` embeds `CobaltMeasureFab` (`+`) inside the single dark pill row instead of `DRD:C-05`'s separated layout (`4`-tab `#0F1115` capsule on left + `12.dp` gap + detached `64.dp` `#2185F7` `+` FAB on right). Scrolling content overlaps visually underneath the dock (`StippledBarChart` solid bar and stipples bleed across the dock). Fix geometry, add a smooth translucent gradient scrim under the dock, and verify `>= 116.dp` bottom clearance visually.
+   - **Defect 3 (`OnboardingScreen.kt` UI Breakage, Cramped Permissions Row, Clipping, & Fake 3-Scale Chips):** `Allow Bluetooth` (1 line) and `Allow Health Connect` (wraps onto 2 lines) inside `OnboardingScreen.kt` create uneven button heights and a broken row; `OnboardingScreen` uses stock `OutlinedTextField` boxes and misses bottom `navigationBarsPadding()` (clipping `"Heavy"` behind the gesture pill); onboarding forces a fake 3-chip selector (`Cult Pro 8E` / `Pro Feet-Only` / `CS-BF01 4E`) instead of **Cult's two real scales** (`Cult Smart Scale Pro` and `Cult Smart Scale`) paired automatically; and the screen discards `DRD:C-07`'s Daylight Pastel sky-wash preview carousel.
+   - **Defect 4 (`ScaleFrameParser.kt` `CS-BF01` Heart Rate vs Impedance Byte Swap + Missing Auto-Reconnect):** `ScaleFrameParser.kt` reads `((b2 shl 8) or b1) / 10.0` as `oneByoneImpedanceRaw` and blocks `heartRateBpm` when `expectedTier == CULT_BF01_4E`, directly violating `Both/occult`'s verified `CS-BF01` `0xCF` layout where `bytes[1]` is Heart Rate (`bpm`) and `bytes[5..6]` LE uint16 is Impedance (`ohm`). Also, `CultBleConstants.buildModeSetupCommand` hardcodes XOR `0xCB` even when `unitKg = false`, `CultBleController` detects scale tier from device name string alone rather than live GATT/packet signatures, and saved scales in `scale_devices` do NOT auto-reconnect when the app opens.
+   - **Defect 5 (`Type.kt` Static Font Weight Illusion):** `core/designsystem` bundles only a single `plus_jakarta_sans_regular.ttf` and `jetbrains_mono_regular.ttf` while relying on `FontVariation.weight(...)` which fails to produce crisp Bold/ExtraBold letterforms on standard font assets. Bundle true multi-weight static TTF files (`400/500/600/700/800`) or verified variable fonts with calibrated tracking + `fontFeatureSettings = "tnum"`.
+   - **Defect 6 (`HomeScreen.kt` Blank Empty Dashboard, Small `24.dp` Pager Buttons, & Seed Helper):** When `measurements` is empty, `HomeScreen` hides the Bento Overview Grid completely and leaves an empty white screen (ignoring Health Connect Page 2 Steps/Sleep/Calories which can populate immediately!). Overview `<` / `>` icons use `size(24.dp)` instead of `48.dp` min hitbox (`INV-18`). `HomeViewModel.seedSampleMeasurementForVerification()` must be removed from production UI code (keep test fixtures inside `src/test/` only; never auto-generate fake body composition data!).
+   - **Defect 7 (`ReportsScreen.kt` Broken Calendar Selection, Hardcoded `16.5f` Placeholder, & Missing 20/50 Interactive Drill-Down):** Selecting a date in `OpenCultCalendarSheet` updates `selectedDate` (`ReportsScreen.kt`), yet `filtered` and `bars` ignore `selectedDate` completely! `latestBf` defaults to fake `16.5f` when empty. Users cannot click any of the **20** (`Cult Smart Scale`) or **56** (`Cult Smart Scale Pro`) parameters inside Home / Measurement Detail / Reports to open interactive trend charts, date-range filters (`7D / 30D / 90D / 1Y / ALL / Custom Day`), or scale-tier filters.
+   - **Defect 8 (`ReportsViewModel` & `BodyMapViewModel` Stale Member State + Orphan Health Connect Bug):** Reading `vault.getActiveProfileId()` once inside `combine()` means switching members on Home/Profiles fails to reactively update `ReportsScreen` or `BodyMapScreen`! Even worse: reassigning an already-synced measurement from Member A (Primary HC user) to Member B does NOT delete Member A's written records in Health Connect! Plus `WeighIn` lacks an explicit **Member Lock** toggle vs Auto-Match clarity so a user who selects/locks Member B before stepping up onto the scale logs straight to Member B reliably.
+   - **Defect 9 (`HealthConnectGateway.kt` + `InspectorScreen.kt` Bugs):** `readDailyContext` omits `ActiveCaloriesBurnedRecord` fallback when `TotalCaloriesBurnedRecord` is empty; `InspectorViewModel.pollExternalHc()` discards fetched external `WeightRecord` items instead of committing them to Room (`INV-05`); and onboarding/home lack crisp, dedicated native Health Connect status & permission UX placement.
+   - **Defect 10 (Missing Sound Engine & Hardcoded Machine Path in Tests):** No acoustic feedback exists anywhere in the app. `EndToEndAppAndVisualTest.kt` hardcodes `C:\Users\imsov\...\screenshots` instead of Gradle build/test output directories (`layout.buildDirectory`).
 
 ---
 
-### 3. Android Identity, Keystore Signing, Play Protect, and Cloudflare-Aligned Security
+### 2. Deep Dual-Model Reverse Engineering (`reverse-engineer-anything` + `rea` MCP)
 
-Design `:app` and all modules under `security-audit`, `android-permissions-security`, `android-intent-security`, `play-policy-insights`, `r8-analyzer`, and Cloudflare security discipline:
+You MUST model ONLY the two physical scale products Cult sells (no bogus 3rd hardware option during onboarding/setup):
 
-1. **Application ID, Namespace, and Non-Infringing Branding:**
-   - Pin canonical `applicationId = "org.opencult.scale"` (clean reverse-DNS namespace matching `org.opencult.scale`; NEVER use `com.example.*` and NEVER infringe `com.cultfit.*` / `com.curefit.*` per `AGENTS.md §3.5`).
-   - Pin `minSdk = 31`, `compileSdk = 36`, `targetSdk = 36` (verified against installed `android-36`; NEVER target unreleased preview API levels like `37` that cause `'App not installed'` rejections). Align Gradle/JDK toolchain cleanly with host JDK/Studio JBR (`Java 17` or `21` bytecode target).
-2. **Release Keystore & Zero-Fallback Signing Config:**
-   - Configure release signing in `app/build.gradle.kts` from gitignored `keystore.properties` + `keystore/opencult-release.jks` (or CI env secrets `OPENCULT_KEYSTORE_PATH`, `OPENCULT_KEYSTORE_PASSWORD`, `OPENCULT_KEY_ALIAS`, `OPENCULT_KEY_PASSWORD`) using 4096-bit RSA, `enableV1Signing = true`, and `enableV2Signing = true`.
-   - Generate a local gitignored release keystore if missing (via `keytool` using cryptographically random passwords stored in gitignored `keystore.properties`, printing ONLY non-secret `SHA-1` and `SHA-256` fingerprints for Google OAuth setup). **Release builds MUST fail immediately if release keystore properties are missing; silent fallback to the debug keystore is permanently banned.**
-3. **Google Play Protect & Android Component Hardening (`play-policy-insights`, `android-permissions-security`, `android-intent-security`):**
-   - **Zero dangerous/restricted permissions that trigger Play Protect or Android 13+ Restricted Settings flags:** Permanently ban `BIND_ACCESSIBILITY_SERVICE`, `BIND_DEVICE_ADMIN`, `REQUEST_INSTALL_PACKAGES`, `SYSTEM_ALERT_WINDOW`, `READ_EXTERNAL_STORAGE`, `WRITE_EXTERNAL_STORAGE`, and `READ_MEDIA_*`.
-   - Use minimal BLE permissions (`BLUETOOTH_SCAN` with `android:usesPermissionFlags="neverForLocation"`, `BLUETOOTH_CONNECT`), Health Connect permissions (`PRD:HC-01`, `TRD:HC-01..HC-10`), `INTERNET`, and `POST_NOTIFICATIONS` only where justified. Implement the 3-state runtime permission flow (`checkSelfPermission` -> rationale UI -> `ActivityResultContract` -> `ACTION_APPLICATION_DETAILS_SETTINGS`), never caching permission booleans (`android-permissions-security`).
-   - Explicit `android:exported="false"` on all internal services/receivers/providers; `PendingIntent.FLAG_IMMUTABLE` everywhere; `ContextCompat.RECEIVER_NOT_EXPORTED` for dynamic receivers; `IntentSanitizer` on external/OAuth redirect Intents; `FileProvider` scoped to explicit export subdirectory (`path="/exports/"`, never root `/`); `android:allowBackup="false"` with explicit `data_extraction_rules.xml` excluding auth/DB secrets; `android:usesCleartextTraffic="false"` with explicit `network_security_config.xml` enforcing HTTPS TLS 1.2+.
-   - Store Supabase session tokens inside Android Keystore AES-256-GCM encrypted storage, NEVER plain `SharedPreferences` or unencrypted DataStore. Never ship `service_role`, DB passwords, or private signing keys inside APK assets/BuildConfig (`INV-08`, `INV-15`).
-   - Enable `isMinifyEnabled = true` and `isShrinkResources = true` on `release` with explicit Kotlinx Serialization / Supabase / Health Connect / `blessed-kotlin` ProGuard rules audited cleanly (`r8-analyzer`).
-4. **Cloudflare Security & Repository Discipline (`cloudflare`, `workers-best-practices`, `cloudflare-one`):**
-   - Apply Cloudflare security hygiene to the entire repository AND to any optional companion Cloudflare Worker / Pages privacy-policy / OAuth callback / Access proxy if configured: zero secrets in repo or `wrangler.toml`, secrets injected via `wrangler secret` / `.env.local` only, `crypto.randomUUID()` / `crypto.getRandomValues()` instead of `Math.random()`, constant-time secret comparison, streamed/bounded bodies, structured observability, explicit fail-closed HTTP errors, and never bypassing Cloudflare Access headers.
+1. **Device 1: Cult Smart Scale (`CS-BF01`, 4-Electrode, 20 Parameters):**
+   - Auto-detected via BLE name (`Cult*`, `CS-BF*`, `OKOK*`, `Cultsport*`, `1byone*`) AND wire signature (`0xFFF0` / `0xFFF4`, `FD 37` / `F1` / `F2 00` handshake with `3000 ms` fallback, 11-byte `0xCF` frames without `0xBE`/`0xDF`). Dynamically compute XOR `xor(bytes[0..n-1])` in ALL outbound commands (`FD 37` fixed!).
+   - Fix `ScaleFrameParser.parse0xCf`:
+     - Distinguish **Cult Smart Scale (`CS-BF01`)** (`bytes[1]` = Heart Rate `bpm`, `bytes[3..4]` LE uint16 `/ 100.0` = `weightKg`, `bytes[5..6]` LE uint16 = `impedanceOhm`, `bytes[9]` `0x01` settling vs `0x00` locked, `bytes[10] = xor(0..9)`) cleanly from **OneByone** history/legacy encodings, while enforcing `INV-21` (`>= 18B` ATT-coalesced duplicate guard `bytes[11] == 0xCF`).
+     - Immediately surface and compute all **20 honest parameters** (`Weight`, `BMI`, `WHO Category`, `Body Fat %`, `Body Fat Mass`, `Fat-Free Mass`, `Subcutaneous Fat %`, `Subcutaneous Fat Mass`, `Visceral Fat Index`, `Visceral Fat Mass`, `Total Body Water %`, `Total Body Water Volume/Mass`, `Muscle Mass`, `Skeletal Muscle Mass / %`, `Bone Mass`, `Protein Mass / %`, `BMR`, `TDEE`, `Metabolic Age`, `Ideal Weight / Obesity %`, `Composite Health Score`, plus `Heart Rate` when sensor frame provides `bytes[1] > 0`) using peer-reviewed BIA equations (`Sun 2003`, `Janssen 2000`, `Wang 2004`, `Katch-McArdle`) when valid impedance (`150..1200 ohm`) is emitted or calibrated `Deurenberg / Watson / Mifflin-St Jeor` fallback labeled accurately (`MetricProvenance`).
+2. **Device 2: Cult Smart Scale Pro (8-Electrode Dual-Frequency Handle, 50+ / 56 Parameters):**
+   - Auto-detected immediately via `0xCF` status transitions (`0x01` settle -> `0x08` handle BIA -> `0x05` complete) and `2 x 13B 0xBE` packets (`Set A[0..4]` low freq + `Set B[0..4]` high freq) + `4 x 17B 0xDF` packets (`INV-01`).
+   - Fix `SHAME-004` forever: capture all **10 raw impedance channels** + raw `uint16_le` + ohm scaling (`0.1`), pass plausibility gates (`INV-03`), compute dual-frequency Cole `R0` / `Rinf` -> `ECW` / `ICW` / `ECW-TBW` / `BCM`, `Janssen SMM/SMI`, and **mass-conserving 5-segment (`Left Arm`, `Right Arm`, `Trunk`, `Left Leg`, `Right Leg`) muscle & fat + Bilateral Symmetry + ALM/ASMI**, making all **56 parameters (`PRD:M-01..M-56`)** immediately inspectable and chartable.
+   - **Pro Feet-Only Automatic Downgrade:** If a **Cult Smart Scale Pro** emits `0xCF` `status = 0x00` and times out without handle `0xBE` packets (user stepped on without holding the handle), automatically classify that session as **Cult Smart Scale Pro (Feet-Only Mode)** (`INV-03`), suppress 8E segmental/ECW metrics cleanly, and never display a fake 3rd hardware scale during onboarding.
+3. **One-Time Pairing + Automatic Background/Foreground Scale Wakeup:**
+   - Persist paired scale MAC address, advertised name, and resolved hardware tier (`Cult Smart Scale Pro` vs `Cult Smart Scale`) in Room `scale_devices` (`INV-14`) + DataStore active primary scale reference.
+   - Whenever the user opens `OpenCult` (`Lifecycle.State.STARTED` on `Home` / `WeighIn` with `BLUETOOTH_SCAN` + `BLUETOOTH_CONNECT` granted), automatically run bounded BLE passive recognition / GATT reconnect for saved scales so **stepping onto the scale opens/updates live settling immediately and logs on lock with zero extra pairing clicks**.
+4. **Shipped Artifact Verification (`reverse-engineer-anything`):**
+   - If a vendor APK (`Cult Fit` / `Cultsport`) or captured `btsnoop_hci.log` is present or supplied on device/workspace, inspect it using `rea` MCP tools (`open_binary`, `inspect_android_package`, `inspect_packet_capture`, `build_reconstruction_obligation_ledger`, `list_unknowns`, `close_binary`). Also run `rea` against your own built `app-release.apk` (`open_binary` + `inspect_android_package` + `evaluate_reconstruction_coverage`) to verify obfuscation, manifest hygiene, and zero secret strings! NEVER fabricate any unverified `0xDF` payload byte (`INV-01`, `INV-02`).
 
 ---
 
-### 4. Native Google Health Connect Integration (`androidx.health.connect:connect-client`)
+### 3. Native Google Health Connect Architecture & UI Placement (`:core:healthconnect`)
 
-Implement production-grade native two-way Health Connect synchronization in `:core:healthconnect`:
+Build and polish Google Health Connect end to end as a first-class Android system integration (since `Both/openscale` has ZERO Health Connect support):
 
-1. **Manifest & Lifecycle Contract:**
-   - Declare every Health Connect permission in `TRD.md §5`.
-   - Register `<activity-alias>` for `androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE` (Android 13) and `ViewPermissionUsageActivity` with `android.intent.action.VIEW_PERMISSION_USAGE` + `android.intent.category.HEALTH_PERMISSIONS` (Android 14+).
-   - Handle `HealthConnectClient.getSdkStatus(context)`: `SDK_AVAILABLE`, `SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED` (prompting official Health Connect Play Store update cleanly), and `SDK_UNAVAILABLE`.
-2. **Idempotent Instant Auto-Write (`INV-04`, `INV-05`):**
-   - On every locked scale weigh-in assigned to the active Health Connect household profile (when permissions are granted), automatically map and write using `Instant` + `ZoneOffset`, typed units (`Mass.kilograms`, `Percentage`, `Power.kilocaloriesPerDay`, `Length.meters`), and `Metadata.automaticallyRecorded(device = Device(manufacturer = "Cult", model = modelTier, type = Device.TYPE_SCALE), clientRecordId = "opencult:${measurement.id}:${recordTag}", clientRecordVersion = measurement.version)`:
-     - `WeightRecord`
-     - `BodyFatRecord`
-     - `LeanBodyMassRecord` (FFM)
-     - `BoneMassRecord`
-     - `BodyWaterMassRecord` (`TBW_kg`)
-     - `BasalMetabolicRateRecord`
-     - `HeartRateRecord` (when captured)
+1. **Clean Permissions & UI Placement:**
+   - Dedicated **Health Connect Readiness & Control Card** placed prominently on:
+     1) **Onboarding** (step card with clean equal-height full-width or aligned CTA button, clear explanation of exact 8 write + 5 read data types, zero text-wrap distortion),
+     2) **Home Dashboard** (`Health Connect` status pill/card + Page 2 Overview Bento tiles for daily Steps, Sleep Duration, Active/Total Calories Burned),
+     3) **Sync Center / Inspector** (`X / 13 permissions granted`, per-record write ledger `Synced / Pending / Failed / Deleted`, 1-tap `Grant Missing Permissions`, 1-tap `Backfill All History`, `Import External Weights`).
+2. **Exact Native Record Fidelity (`androidx.health.connect:connect-client`):**
+   - On every confirmed lock for a household member flagged `isPrimaryHcUser` (or user-selected Health Connect target), write immediately in background using `Instant` + `ZoneOffset` + `Device(type = Device.TYPE_SCALE, manufacturer = "Cult.fit", model = detectedHardwareModelName)` + `Metadata.autoRecorded(...)` (for BLE weigh-ins) or `Metadata.manualEntry(...)` (for manual entries), with `clientRecordId = "opencult:${measurement.id}:${tag}"` and monotonic `clientRecordVersion`:
+     - `WeightRecord` (`Mass.kilograms`)
+     - `BodyFatRecord` (`Percentage`)
+     - `LeanBodyMassRecord` (`Mass.kilograms`)
+     - `BoneMassRecord` (`Mass.kilograms`)
+     - `BodyWaterMassRecord` (`Mass.kilograms`)
+     - `BasalMetabolicRateRecord` (`Power.kilocaloriesPerDay`)
+     - `HeartRateRecord` (when scale emitted HR)
      - `HeightRecord` (when profile height changes)
-   - For `4E CS-BF01` / `Pro Feet-Only`, write verified weight + honestly labeled aggregate body-comp permissions cleanly without claiming 8E hardware fidelity; tolerate partial permission subsets (write what the user granted, record exact per-type status in `health_connect_sync_ledger`).
-3. **Incremental Inbound Read (`ChangesToken`), Echo Prevention, Backfill & Delete Sync (`INV-05`, `INV-16`):**
-   - Read daily `StepsRecord`, `SleepSessionRecord`, `TotalCaloriesBurnedRecord` (with `ActiveCaloriesBurnedRecord` fallback) for Home Bento Page 2, and optional external `WeightRecord` strictly excluding `record.metadata.dataOrigin.packageName == BuildConfig.APPLICATION_ID` (`INV-05`).
-   - Handle expired `ChangesToken` (`ChangesResponse.changesTokenExpired`) cleanly by resetting and re-syncing window.
-   - Implement batch historical backfill with progress indicator (`Sync Center`) and immediate `HealthConnectClient.deleteRecords` on tombstone deletion (`INV-16`).
+   - Support partial permission grants gracefully without crashing (`SecurityException` guarded per type, updating `health_connect_sync_ledger` accurately ONLY for records actually inserted/confirmed).
+3. **Loop-Free Inbound Sync, Backfill, & Orphan Cleanup:**
+   - Read daily `StepsRecord`, `SleepSessionRecord`, and `TotalCaloriesBurnedRecord` **with automatic fallback to `ActiveCaloriesBurnedRecord`** inside `HealthConnectGateway.readDailyContext`.
+   - Fix `pollExternalWeights`: actually persist imported external `WeightRecord`s (where `dataOrigin.packageName != BuildConfig.APPLICATION_ID`) into Room `measurements` (`source = "health_connect_import"`) with dedup!
+   - When a measurement is soft-deleted OR reassigned from a Health Connect user to another household member, ALWAYS delete the old Health Connect records first via `deleteRecords(clientRecordIds)` so Health Connect never holds phantom data (`INV-04`, `INV-05`, `INV-16`).
 
 ---
 
-### 5. Supabase Backend, Offline-First Room, and Permanent Calendar-Day Persistence
+### 4. Member Isolation, Member Lock, & Lifetime Calendar/Supabase Persistence
 
-1. **Permanent Local-First Ledger (`< 50 ms`, `INV-06`):**
-   - Room SQLite (`2.7+` KSP) mirrors `household_profiles` (enforcing `<= 10` active members), `scale_devices`, `measurements` (indexed by `(profile_id, local_date, measured_at DESC)` where `deleted_at IS NULL` so every member's readings for every specific calendar day stay permanently stored and queryable instantaneously), immutable `raw_ble_packets` (`INV-01`), `health_connect_sync_ledger`, and `sync_outbox`.
-   - Soft deletes (`deleted_at`) propagate cleanly across Room, Health Connect, and Supabase before compaction (`INV-16`).
-2. **Zero-Refresh Supabase Realtime Sync (`INV-07`, `INV-08`):**
-   - Configure `supabase-kt` (`Auth`, `Postgrest`, `Realtime` with Ktor CIO/OkHttp TLS) against the live project schema (`supabase/migrations/20261126000001_opencult_initial_schema.sql`).
-   - Run WorkManager `OutboxDrainer` (battery-aware, exponential backoff) and authenticated `supabase.channel("opencult-sync").postgresChangeFlow<PostgresAction>(schema = "public")` converging remote changes across devices into Room/Kotlin `StateFlow` in `<= 2 s` without manual refresh, ignoring self-echoes by `mutation_id`.
-   - Enforce `(SELECT auth.uid()) = account_id` RLS (`ENABLE` + `FORCE`) with zero `service_role` on client (`INV-08`).
-
----
-
-### 6. Visual Reverse Engineering, Motion/Micro-Engineered UI, and Rejection of Generic Native Widgets
-
-Reverse-engineer every layout proportion, spacing, pastel surface, elevation, typography rule, chart, micro-interaction, and spring curve directly from `DRD.md`, `MICROENGINEERING.md`, `MOTIONENGINEERING.md`, and `prototype/` (following `INV-22` whenever `prototype/` differs from `DRD.md`, such as `SHAME-006`):
-
-1. **Strict Ban on Stock Native Popups & Generic Material Defaults:**
-   - **NEVER use `android.app.DatePickerDialog` or stock Material `DatePicker` dialogs.** Build a custom OpenCult **Daylight/Obsidian Squircle Calendar Sheet** (`28.dp` radius, `Plus Jakarta Sans` `tnum` grid, colored activity dot indicators showing saved weigh-ins per member per day, horizontal swipe/pager month transitions driven by `OpenCultMotion.SpatialDefault` and `SheetEnter`).
-   - **NEVER use stock Android `Spinner`, stock unstyled `DropdownMenu` popups, stock `Material 3 NavigationBar`, stock `Card`, stock `FloatingActionButton`, or external charting libraries (MPAndroidChart / Vico / Compose-Charts).** Replace every selector (`Weight v`, `Weekly v`, profile switch, scale switch) with custom animated pills and squircle modal sheets obeying `MICROENGINEERING.md §2` (`4-stage Touchdown / Tracking / Payoff / Consequence`).
-2. **Binding Custom Compose `Canvas` & Motion Specifications:**
-   - Implement `:core:designsystem` (`OpenCultTheme` + `OpenCultMotion` + `DRD:T-01..T-25`) first with ZERO hardcoded `Color(0x...)` or `sp`/`dp` or `spring()` literals in `:feature:*` (`INV-10`, `INV-19`).
-   - Implement all custom `Canvas` components via `DrawScope` with cached `Path`/`PathEffect` inside `remember(size)` and `Modifier.graphicsLayer { ... }` lambda deferral (`jetpack-compose-performance`):
-     - `DRD:C-01` Hero 9-column vertical rounded capsule spark-bars (`4.dp` width, `6.dp` gap, `#EF4444` spike).
-     - `DRD:C-02` Asymmetric 2-column Bento Overview Grid (`212.dp` Lavender card beside stacked `100.dp` Sage/Peach cards, `<` / `>` pager, cubic Bezier wave + hollow terminal dot).
-     - `DRD:C-03` 3-Zone Semi-Circular Arc Gauge (`180 deg`, `18.dp`, `StrokeCap.Round`, `4 deg` gaps, `#2185F7` Optimal / `#F4B428` Elevated / `#EF4444` High per `DRD.md` & `INV-22`, polar angular interpolation for `24.dp` ringed thumb, never Cartesian chord shortcut).
-     - `DRD:C-04` Stippled Dot-Matrix Bar Chart (clipped rounded-top columns, deterministic `2.2.dp` dots on `6.dp` pitch with `3.dp` odd-row horizontal stagger, solid `inkPrimary` active bar + `6.dp` inner dot + `1.dp` dashed connector + non-clipping floating status pill, zero extra footer rows inside chart card).
-     - `DRD:C-05` Detached `#0F1115` Obsidian Pill Dock (`64.dp`, `32.dp` radius, `46.dp` active white circle) + `64.dp` `#2185F7` Measure FAB (`>= 116.dp` scroll inset clearance on every screen, `INV-13`).
-     - `DRD:C-06` Interactive 5-Segment Anatomical Body Map (honestly gated on `4E` / `Pro Feet-Only`, clamped floating callouts, balance bars).
-     - `DRD:C-07..C-10` Onboarding Breakout Device-in-Device Preview, Live 8-Pad/4-Pad Weigh-In Sheet (`tnum`, deduplicated lock haptic, lifecycle-gated Stage 1 `AmbientRadar`), 56-Param Searchable Categorized Accordion (`160 ms` max stagger cap), BLE Wire Inspector (`JetBrains Mono`), Custom Calendar Day Ledger, Household Manager (10 profiles), and Sync Center.
-   - Honor `enableEdgeToEdge()`, `ANIMATOR_DURATION_SCALE == 0f` (`INV-20`), `>= 48.dp` touch hitboxes (`INV-18`), and both **Daylight Clinical Pastel** + **Obsidian Night** themes on compact `360.dp` width viewports (`INV-13`).
+1. **Reactive Active Member Selection & Member Lock (`Home` / `Profiles` / `WeighIn`):**
+   - Store `activeProfileId` inside a reactive `StateFlow<String?>` in a singleton preference/session coordinator injected into ALL ViewModels (`MainViewModel`, `HomeViewModel`, `BodyMapViewModel`, `ReportsViewModel`, `ProfilesViewModel`, `WeighInViewModel`) so switching members updates every tab instantaneously.
+   - Add an explicit **Member Lock** mode (`Lock to Active Member` toggle on `WeighIn` / `Home`):
+     - When **Locked ON**: every incoming scale weigh-in immediately logs straight to that exact locked member (even when multiple household members share similar weights or have no prior history) with zero accidental cross-member miswrites.
+     - When **Auto-Match (Household Shared)**: enforce `INV-09` (`±2.5 kg` single match -> confirm; 0 or 2+ matches -> `pending_review` + interactive chooser sheet, never blindly dumping Member B onto Member A!).
+2. **Lifetime Per-Member, Per-Calendar-Day Persistence & Realtime Sync:**
+   - Every weigh-in commits atomically in `< 50 ms` into Room (`measurements` + immutable `raw_ble_packets` + `health_connect_sync_ledger` + `sync_outbox`) indexed by `(profile_id, local_date, measured_at)` (`INV-06`).
+   - Re-enable reactive `postgresChangeFlow` across `measurements`, `household_profiles`, `scale_devices`, and `health_connect_sync_ledger` with `mutation_id` self-echo suppression (`INV-07`), scoped strictly by `FORCE ROW LEVEL SECURITY` `(SELECT auth.uid()) = account_id` (`INV-08`).
+   - Zero fake/demo seeded measurements anywhere in shipping app paths!
 
 ---
 
-### 7. Mandatory Vertical-Slice Execution Plan & Exit Verification Gates
+### 5. Acoustic Sound Engineering (`:core:audio` `OpenCultSoundEngine`)
 
-Execute and verify each slice completely before advancing (all code -> tests -> lint -> UI verification):
+Do NOT use harsh Android system notification ringtones (`RingtoneManager` / notification channel bings). Build a lightweight, sample-accurate `:core:audio` synthesizer using `android.media.AudioTrack` (`AudioAttributes.USAGE_ASSISTANCE_SONIFICATION`, `CONTENT_TYPE_SONIFICATION`, `MODE_STATIC`, 44.1 kHz 16-bit PCM mono with raised-cosine Hann attack/release envelopes to eliminate clicks/clipping):
 
-- **Slice S0:** Multi-module Gradle Kotlin DSL scaffold (`:app`, `:core:*`, `:feature:*`), `org.opencult.scale` applicationId, gitignored release keystore setup with zero debug-fallback, `network_security_config.xml`, `:app:assembleDebug` + `:app:assembleRelease` compile checks.
-- **Slice S1:** `:core:designsystem` tokens (`OpenCultTheme`, `OpenCultMotion`), custom Canvas primitives (`DRD:C-01`..`C-06`), custom Calendar & Pill Selector sheets, Compose UI bounds/theme/reduced-motion tests.
-- **Slice S2:** `:core:bia` pure-Kotlin 56-param dual-frequency Cole + Sun + Janssen + Wang + `Wla25` segmental engine + `CS-BF01` 20+ param anthropometric engine + plausibility gate (`INV-02`, `INV-03`). Run JVM parameterized unit tests.
-- **Slice S3:** `:core:ble` (`blessed-kotlin`) GATT state machines for Cult Pro `8E` (`0xCF` + 10-ch `0xBE` + 4x `0xDF`), Pro Feet-Only (`0x00`), and `CS-BF01` `4E` (`FD 37`/`F1`/`F2` + coalesced duplicate guard `INV-21`), plus `rea` reconstruction ledger & captured frame replay unit tests.
-- **Slice S4:** `:core:database` Room SQLite + `sync_outbox` + calendar-day measurement index + 10-profile limit + `±2.5 kg` auto-match / ambiguity flow (`INV-06`, `INV-09`, `INV-16`). Run Robolectric DAO + migration tests.
-- **Slice S5:** `:core:healthconnect` native AndroidManifest aliases + `HealthConnectClient` idempotent auto-write (`Metadata.automaticallyRecorded`) + `ChangesToken` read (`dataOrigin` exclusion) + backfill + tombstone delete tests (`INV-04`, `INV-05`).
-- **Slice S6:** `:core:sync-supabase` Encrypted Keystore session storage + Supabase Auth + WorkManager `OutboxDrainer` + Realtime `postgresChangeFlow` (`mutation_id` dedup, `<= 2 s` convergence) + `supabase migration list` / RLS check (`INV-07`, `INV-08`).
-- **Slice S7-S10:** All 9 feature modules (`DRD:S-01`..`S-09`) + Lossless JSON/CSV export + R8 Release verification + Security & Play Policy Audits (`security-audit`, `android-permissions-security`, `android-intent-security`, `play-policy-insights`, `anr-audit-and-fix`) + Visual UI Verification (`connectedDebugAndroidTest` / Robolectric Compose UI bounds + Daylight/Obsidian screenshot verification via `android screen capture` / Compose Preview Screenshot Testing).
+1. `SCALE_CONNECTED`: Gentle warm crystalline major-fifth chime (`C5 523.25 Hz` -> `G5 783.99 Hz`, `80 ms`).
+2. `SETTLING_TICK`: Quiet tactile click-pip (`880 Hz`, `12 ms` envelope) when stable weight counter increments (`1/3`, `2/3`).
+3. `WEIGHT_LOCKED`: Crisp medical-instrument confirmation dyad (`D5 587.33 Hz` + `A5 880.00 Hz`, `140 ms` decay) synchronized to weigh-in lock (deduplicated once per session).
+4. `METRICS_LOGGED_PRO_50` / `METRICS_LOGGED_BASIC_20`: Bright upward triad (`C5 -> E5 -> C6`, `220 ms` tail) confirming full parameters calculated, saved to Room, and Health Connect write triggered.
+5. `AMBIGUOUS_MEMBER_PROMPT`: Balanced neutral two-tone interval (`A4 440 Hz -> G4 392 Hz`, `150 ms`) cueing member selection.
+6. `CAPTURE_ERROR`: Soft low mute thud (`220 Hz -> 165 Hz`, `110 ms`) on checksum failure or lost contact.
+- Respect device ringer/media/silent state and expose a persistent `Scale Sound Feedback` switch inside Profile / Sync Settings (`SecureVault`).
 
-### 8. Final Non-Bypassable Release Gate
+---
 
-Before returning control to the user:
-1. Run full Gradle build, debug + release signing check, unit tests, Robolectric tests, Android Lint, Compose UI bounds/screenshot tests, `supabase migration list`, secret/`.gitignore` scan, and Play Policy / Intent / Permissions security checks **after your final edit**.
-2. Inspect every generated UI screenshot directly (`android screen capture` or test screenshot artifacts) across Light & Dark mode at `360.dp` width; verify zero clipping over the dock (`INV-13`), zero generic native calendar/dropdown popups, and exact `DRD.md` Canvas fidelity.
-3. Reconcile `HALL_OF_SHAME.md`, `INVARIANTS.md`, `MICROENGINEERING.md`, `MOTIONENGINEERING.md`, and Second Brain (`project="opencult"` capsule + linked `handoff`).
-4. Report exact commands, raw exit codes, `Verified / Unverified / Unknown` boundaries, SHA-256 fingerprint of the release signing config (never secrets), and only append `<!-- GOAL_COMPLETE -->` once 100% of verification checks pass.
+### 6. Industry-Grade UI, Typography, Full 20/50 Data Visualization & Filtering (`MICROENGINEERING.md` + `MOTIONENGINEERING.md` + `DRD.md`)
+
+1. **Strict Rejection of Stock Native Controls:**
+   - **BANNED:** Stock `DatePickerDialog` / Material `DatePicker` popup, stock `Spinner` / `DropdownMenu` popups, stock `OutlinedTextField` settings lookalikes in Onboarding, raw `Switch` toggles where custom squircle pills apply, stock `NavigationBar`, `Card`, `FloatingActionButton`, or external chart libraries (MPAndroidChart, Vico).
+   - **REQUIRED:** Custom Compose `Canvas` (`DRD:C-01`..`C-06`), custom `OpenCultCalendarSheet` (wired directly into Reports & Home filtering!), custom `OpenCultPillSelectorSheet` / animated pills, custom squircle text input containers for member onboarding/editing, all obeying 4-stage micro-press (`0.92f`/`0.94f`/`0.97f` `graphicsLayer` + haptic), `>= 48.dp` touch hitboxes (`INV-18`), and closed `OpenCultMotion` specs (`INV-19`, `INV-20`).
+2. **Exact Remediation of Visual Bugs Observed in Screenshots:**
+   - **Dock + Scrim Separation (`DRD:C-05`, `INV-13`):** Render `#0F1115` capsule (`4` nav tabs) on left + `12.dp` spacing + detached `64.dp` `#2185F7` `+` FAB on right, layered over a smooth subtle translucent canvas fade scrim so scrolling charts and list cards fade gracefully above the dock without bar overlap (`06844ba6.png` fixed forever!).
+   - **Sleek `DRD:C-07` Onboarding + Aligned Permission Row:** Implement the true Daylight Clinical Pastel wash (`#CBE1F7 -> #F4F6FA`), breakout miniature dashboard card preview (`Step 1`), dedicated **Hardware Auto-Discovery + Equal-Height Permissions Page** (`Step 2` with full-width or matched `IntrinsicSize.Max` single-line permission cards + Bluetooth/Health Connect live badges, fixing `d211f02d.png`), and clean **Primary Member Setup Page** (`Step 3` with full `.navigationBarsPadding()`, fixing bottom chip clipping in `a95f495c.png`), using zero hardcoded 3rd-scale selector chips.
+   - **True Multi-Weight Fonts (`Type.kt`):** Bundle actual `Plus Jakarta Sans` (`400/500/600/700/800`) and `JetBrains Mono` (`400/500/700`) static font files cleanly in `res/font/`, paired with `fontFeatureSettings = "tnum"` on every numeric metric (`INV-12`).
+   - **Calm Empty Home + Full Bento Grid:** Even before a user's first weigh-in, keep the clean Hero card (`Cult Smart Scale Pro` / `Cult Smart Scale` ready badge + quiet spark baseline), the asymmetric Lavender/Sage/Peach Bento Overview Grid (`<`/`>` `48.dp` pager arrows showing real Health Connect Steps/Sleep/Calories on Page 2!), and a clear Google Health Connect card.
+   - **Complete 20-Param / 56-Param Data Visualization & Lifetime Filtering:**
+     - **Body Map (`DRD:C-06`) & Parameter Explorer:** Automatically shows **20 active panels/metrics** when `Cult Smart Scale (CS-BF01)` is detected/used and **all 56 parameters** (`M-01..M-56` + 5-segment interactive map + Muscle/Fat toggle + bilateral balance bars) when `Cult Smart Scale Pro` is detected/used.
+     - **Click Any Metric -> Full Trend Visualizer:** Clicking any parameter across Home Bento, Measurement Detail, Body Map, or Reports opens/updates rich native `Canvas` visualizations (line + gradient area chart with clickable data points + zone bands, 3-zone Arc Gauge `DRD:C-03`, Staggered Stippled Dot-Matrix Bar Chart `DRD:C-04`), with **working multi-axis filtering**: Date Range (`7D`, `30D`, `90D`, `1Y`, `Lifetime All`), **Specific Calendar Date / Date-Range Filter** (`OpenCultCalendarSheet` wired cleanly!), **Scale Source Filter** (`All`, `Cult Pro 8E`, `Cult Scale 4E`, `Feet-Only`), and **Member Filter**.
+
+---
+
+### 7. Security, Persistent Release Keystore, Play Protect, & Cloudflare Rules
+
+1. **Identity, SDKs & Keystore (`app/build.gradle.kts`):**
+   - `applicationId = "org.opencult.scale"`, `minSdk = 31`, `compileSdk = 36`, `targetSdk = 36`.
+   - Maintain gitignored RSA-4096 `keystore/opencult-release.jks` + `keystore.properties` (plus GitHub Secrets env support) with `enableV1Signing = true` and `enableV2Signing = true`, failing any `Release` build immediately if release credentials are missing (zero debug fallback). Document non-secret Release Keystore `SHA-1` & `SHA-256` digests (`SHID`).
+2. **Industry-Grade R8 Obfuscation (`app/proguard-rules.pro`):**
+   - Enforce `isMinifyEnabled = true` and `isShrinkResources = true` on `release`.
+   - Add hardened R8 directives (`-repackageclasses 'o'`, `-allowaccessmodification`, `-renamesourcefileattribute SourceFile`, `-keepattributes SourceFile,LineNumberTable`, `-assumenosideeffects class android.util.Log { public static boolean isLoggable(java.lang.String, int); public static int v(...); public static int d(...); }`), while keeping exact rules for Kotlinx Serialization, Supabase Auth/PostgREST/Realtime DTOs, Hilt, Room, `blessed-kotlin`, and Health Connect! Audit the resulting mapping and DEX via `r8-analyzer` and `rea` MCP (`open_binary` + `inspect_android_package`).
+3. **Google Play Protect & Cloudflare Security Compliance:**
+   - Verify `aapt2 dump permissions app/build/outputs/apk/release/app-release.apk` shows ZERO dangerous/restricted permissions (`BIND_ACCESSIBILITY_SERVICE`, `BIND_DEVICE_ADMIN`, `REQUEST_INSTALL_PACKAGES`, `SYSTEM_ALERT_WINDOW`, location permissions, external storage permissions).
+   - Enforce `IntentSanitizer`, `PendingIntent.FLAG_IMMUTABLE`, `RECEIVER_NOT_EXPORTED`, `android:exported="false"` on internal components, scoped `FileProvider` `/exports/`, `usesCleartextTraffic="false"`, Android Keystore AES-256-GCM encryption for tokens (`SecureVault`), and zero secrets in APK assets (`INV-15`, `INV-24`).
+   - Run `security-audit`, `android-permissions-security`, `android-intent-security`, `play-policy-insights`, and `anr-audit-and-fix` checks and apply Cloudflare repository/edge security standards across repo & CI (`workers-best-practices` / `cloudflare-one`: zero leaked tokens, `crypto` CSPRNG if edge code added, timing-safe secret comparisons).
+
+---
+
+### 8. GitHub Actions Intelligent Release Workflow, Versioning, & Attribution `README.md`
+
+1. **Create `.github/workflows/android-intelligent-release.yml` + `scripts/`:**
+   - Triggers: `push` (`main`, feature branches, `v*` tags), `pull_request`, and `workflow_dispatch`.
+   - **Autonomous Version Sync (`scripts/bump_version.py`):** On `main` push / release trigger (avoiding infinite `[skip ci]` recursion cleanly), atomically increments `versionCode` + `versionName` (`patch`/`minor`/`major`) across `app/build.gradle.kts`, UI About display (read dynamically from `BuildConfig.VERSION_NAME` & `BuildConfig.VERSION_CODE` so the UI always displays live synced version info!), and `README.md` release badges/table.
+   - **Hardened Release Build & Signing in CI:** Sets up JDK 17 + Android SDK `android-36` + `build-tools;36.0.0`, restores persistent release keystore from GitHub Secrets (`OPENCULT_KEYSTORE_BASE64`, `OPENCULT_KEYSTORE_PASSWORD`, `OPENCULT_KEY_ALIAS`, `OPENCULT_KEY_PASSWORD`) cleanly without committing keys (supports `.env.local`/GitHub Secrets `OPENCULT_SUPABASE_URL` & `OPENCULT_SUPABASE_ANON_KEY`), runs full Gradle test + lint + R8 obfuscated `:app:assembleRelease` + `apksigner verify --print-certs` + `aapt2 dump permissions` gate, uploads signed APK (`opencult-v<version>.apk`), `.sha256`, R8 `mapping.txt` artifact, `metadata.json`, `RELEASE_NOTES.md`, and source archive ZIP.
+   - **Adaptive Intelligent Release Notes Generator (`scripts/generate_release_notes.py`):** Inspects commit messages, git diff stats across modules (`:core:ble`, `:core:bia`, `:core:healthconnect`, `:core:designsystem`, `:feature:*`), binary size, `apksigner` SHA-1/SHA-256 keystore digests (`SHID`), and `aapt2` security verification; when an optional lightweight AI model token (`GITHUB_TOKEN` GitHub Models e.g. `gpt-4o-mini` / `GEMINI_API_KEY` flash-lite via official HTTPS API) is present in CI environment secrets, synthesizes concise adaptive human-readable highlights validated cleanly, falling back deterministically to `git-cliff` + diff breakdown when offline/no AI key is configured! Publishes GitHub Release (`softprops/action-gh-release@v2`) with all assets and posts PR diff intelligence comments.
+   - Verify workflow YAML syntax locally (Python `yaml.safe_load` / `actionlint` if installed) and dry-run `scripts/bump_version.py` & `scripts/generate_release_notes.py` against sample/real metadata cleanly before committing.
+2. **Sophisticated Open-Source `README.md`:**
+   - Rewrite root `README.md` cleanly using `humanizer` principles (zero AI buzzwords, zero em/en dashes, zero curly quotes): include live version/build badge hooks synced by CI, release APK + SHA-256 attestation section, hardware support matrix (**Cult Smart Scale Pro 56-param** vs **Cult Smart Scale `CS-BF01` 20-param**), BLE protocol & dual-frequency equations overview, Google Health Connect record table, Supabase RLS architecture, explicit upstream open-source attribution (`oliexdev/openScale` `[GPL-3.0]`, `anshuman852/occult` `[MIT]`, `weliem/blessed-kotlin`, Google Jetpack Compose, `androidx.health.connect`, Supabase Kotlin SDK, Material Icons Extended), build instructions, and trademark disclaimer (`AGENTS.md §3.5`).
+
+---
+
+### 9. Granular GitHub Commits, Emulator Visual Verification, & Final Gate
+
+Before outputting your final report:
+1. **Fix Screenshot & Unit Tests (`EndToEndAppAndVisualTest.kt`):** Write visual screenshots into project-local `build/outputs/visual_screenshots/` (NEVER hardcoded user brain folders) and add exhaustive tests for: `CS-BF01` `bytes[1]` HR + `bytes[5..6]` impedance, member lock isolation, Calendar filtering in Reports, `ActiveCaloriesBurnedRecord` + external `WeightRecord` Room import, `:core:audio` PCM waveform envelope generation, and `DetachedObsidianDock` bounds + `48.dp` touch target checks (`INV-13`, `INV-18`).
+2. **Boot Emulator / Inspect Every Rendered Screen Visually:**
+   - Run `./gradlew.bat testDebugUnitTest :app:lintRelease :app:assembleDebug :app:assembleRelease`.
+   - Install `app-release.apk` on Android Emulator (`adb install -r`; uninstall prior debug/signature conflict cleanly if needed), verify ZERO `FATAL EXCEPTION` / ANR logs in `adb logcat`, capture PNG screenshots (`android screen capture` or `adb exec-out screencap -p`) across **Onboarding**, **Home (empty + populated Daylight + Obsidian)**, **Weigh-In**, **Body Map**, **Reports (Arc Gauge + Stippled Chart + Calendar Filter + Drill-Down)**, **Profiles**, **Health Connect Sync**, and **Inspector**, and visually inspect EVERY PNG image yourself (`read_file`) to confirm zero button wrapping breakage, zero dock/chart collision, crisp fonts, and exact `DRD.md` aesthetic alignment.
+   - Run `apksigner verify --print-certs`, `aapt2 dump permissions`, `rea` `open_binary` + `inspect_android_package` on `app-release.apk`, and automated prose/secret/`.gitignore` scans (`Both/`, `keystore/`, `.env.local`).
+3. **Granular Signed Commits & Push to GitHub:**
+   - Stage and commit logically per concern using repo SSH signing (`Souvik Dey <imsovikde@gmail.com>`, zero `Co-Authored-By` trailers): e.g. `:core:ble` + `:core:bia` + `:core:audio` fixes, `:core:database` + `:core:healthconnect` + `:core:sync-supabase`, `:core:designsystem` + `:feature:*` UI/dock/font/chart fixes, `:app` + R8 + Play Protect hardening, `.github/workflows` + release scripts + `README.md` + regression ledgers (`HALL_OF_SHAME.md`, `INVARIANTS.md`, `MICROENGINEERING.md`, `MOTIONENGINEERING.md`).
+   - Push to `origin main` via `git push` / `gh`, and confirm `gh api repos/imsovikde/OpenCult/commits/HEAD` shows `verified: true`.
+4. **Update Second Brain & Output Final Evidence:**
+   - Update `capsule:project:opencult` (`current-state`, `decisions`) and store a complete linked `handoff` entry in `second-brain` (`project="opencult"`).
+   - Quote every executed command, raw exit code, `Verified / Unverified / Unknown` boundaries, release keystore `SHA-256` (`SHID`), and visual screenshot observations, and append `<!-- GOAL_COMPLETE -->` ONLY when every gate above has passed.
 ```
