@@ -1,0 +1,105 @@
+name: "Android Verification & Intelligent Release"
+
+on:
+  push:
+    branches: [ "main" ]
+    tags: [ "v*" ]
+  pull_request:
+    branches: [ "main" ]
+  workflow_dispatch:
+    inputs:
+      release_version:
+        description: "Optional explicit tag name (e.g. v0.2.0) to publish release artifacts"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+jobs:
+  verify-and-build:
+    name: Build, Test, Lint & Release APK
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Setup Gradle cache
+        uses: gradle/actions/setup-gradle@v4
+
+      - name: Verify release versioning & notes generators
+        run: |
+          python -m py_compile scripts/bump_version.py scripts/generate_release_notes.py
+          python scripts/bump_version.py
+          python scripts/generate_release_notes.py --version "${GITHUB_REF_NAME:-main}" --output release_notes.md
+
+      - name: Run 14-module unit tests and debug APK build
+        run: |
+          chmod +x ./gradlew
+          ./gradlew testDebugUnitTest :app:assembleDebug --no-daemon --console=plain
+
+      - name: Decode release keystore if secrets are configured
+        id: signing
+        env:
+          KEYSTORE_B64: ${{ secrets.OPENCULT_KEYSTORE_BASE64 }}
+          KEYSTORE_PASS: ${{ secrets.OPENCULT_KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.OPENCULT_KEY_ALIAS }}
+          KEY_PASS: ${{ secrets.OPENCULT_KEY_PASSWORD }}
+        run: |
+          if [ -n "$KEYSTORE_B64" ] && [ -n "$KEYSTORE_PASS" ] && [ -n "$KEY_ALIAS" ] && [ -n "$KEY_PASS" ]; then
+            mkdir -p keystore
+            echo "$KEYSTORE_B64" | base64 --decode > keystore/opencult-release.jks
+            cat <<EOF > keystore.properties
+          storeFile=keystore/opencult-release.jks
+          storePassword=$KEYSTORE_PASS
+          keyAlias=$KEY_ALIAS
+          keyPassword=$KEY_PASS
+          EOF
+            echo "has_signing=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "has_signing=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build signed release APK & bundle when signing secrets exist
+        if: steps.signing.outputs.has_signing == 'true'
+        run: |
+          ./gradlew :app:lintRelease :app:analyzeReleaseR8Config :app:assembleRelease :app:bundleRelease --no-daemon --console=plain
+
+      - name: Upload debug and release artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: opencult-android-artifacts
+          path: |
+            app/build/outputs/apk/debug/*.apk
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/bundle/release/*.aab
+            app/build/reports/r8/r8-config-analyzer-release.html
+            release_notes.md
+          if-no-files-found: warn
+
+      - name: Publish GitHub Release on version tag or manual release
+        if: (startsWith(github.ref, 'refs/tags/v') || inputs.release_version != '') && steps.signing.outputs.has_signing == 'true'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ inputs.release_version != '' && inputs.release_version || github.ref_name }}
+          name: "OpenCult ${{ inputs.release_version != '' && inputs.release_version || github.ref_name }}"
+          body_path: release_notes.md
+          files: |
+            app/build/outputs/apk/release/*.apk
+            app/build/outputs/bundle/release/*.aab
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
