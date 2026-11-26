@@ -39,7 +39,7 @@ jobs:
           python-version: '3.12'
 
       - name: Setup Gradle cache
-        uses: gradle/actions/setup-gradle@v4
+        uses: gradle/actions/setup-gradle@v6
 
       - name: Verify release versioning & notes generators
         run: |
