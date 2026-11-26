@@ -139,6 +139,12 @@ class InspectorViewModel @Inject constructor(
 
     suspend fun drainOutboxNow(): Result<Int> = syncEngine.drainOutboxNow()
 
+    suspend fun fullCloudSyncNow(): Result<Pair<Int, Int>> = runCatching {
+        val pushed = syncEngine.drainOutboxNow().getOrThrow()
+        val pulled = syncEngine.pullRemoteChanges().getOrThrow()
+        pushed to pulled
+    }
+
     suspend fun pollAndImportExternalHc(): String {
         val result = healthConnectGateway.pollAndImportExternalWeights(
             currentToken = vault.getHealthConnectToken(),
@@ -366,10 +372,12 @@ fun InspectorScreen(
             InspectorTab.SUPABASE -> {
                 OpenCultBentoCard(modifier = Modifier.fillMaxWidth()) {
                     Text(
-                        text = if (state.syncStatus.isSignedIn) {
+                        text = if (!state.syncStatus.backendConfigured) {
+                            "Supabase URL / Key Not Configured"
+                        } else if (state.syncStatus.isSignedIn) {
                             "Signed in: ${state.syncStatus.userEmail ?: state.syncStatus.accountId}"
                         } else {
-                            "Offline-First Guest Mode (Not Signed In)"
+                            "Offline-First Guest Mode (Ready to Sign In)"
                         },
                         style = OpenCultTheme.typography.sectionTitle,
                         color = colors.textPrimary,
@@ -431,11 +439,13 @@ fun InspectorScreen(
                     } else {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             OpenCultPrimaryButton(
-                                text = "Sync Outbox Now",
+                                text = "Sync Push+Pull",
                                 onClick = {
                                     scope.launch {
-                                        viewModel.drainOutboxNow()
-                                            .onSuccess { n -> feedback = "Synced $n items to Supabase." }
+                                        viewModel.fullCloudSyncNow()
+                                            .onSuccess { (pushed, pulled) ->
+                                                feedback = "Synced: pushed $pushed, pulled $pulled records."
+                                            }
                                             .onFailure { feedback = it.message }
                                     }
                                 },

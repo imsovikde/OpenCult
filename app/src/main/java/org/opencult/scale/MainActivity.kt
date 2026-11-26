@@ -9,6 +9,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.health.connect.client.PermissionController
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -19,6 +21,7 @@ import org.opencult.scale.core.designsystem.theme.OpenCultTheme
 class MainActivity : ComponentActivity() {
 
     private val viewModel: MainViewModel by viewModels()
+    private var incomingAction by mutableStateOf<String?>(null)
 
     private val blePermissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions(),
@@ -36,6 +39,7 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        incomingAction = intent?.action
         viewModel.handleIncomingOAuthIntent(intent)
 
         setContent {
@@ -43,7 +47,8 @@ class MainActivity : ComponentActivity() {
             val isOnboarded by viewModel.isOnboarded.collectAsStateWithLifecycle()
             val bleGranted by viewModel.bleGranted.collectAsStateWithLifecycle()
             val hcGrantedCount by viewModel.hcGrantedCount.collectAsStateWithLifecycle()
-            val showHcRationale = intent?.action == "androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE"
+            val showHcRationale = incomingAction == "androidx.health.ACTION_SHOW_PERMISSIONS_RATIONALE" ||
+                incomingAction == Intent.ACTION_VIEW_PERMISSION_USAGE
             val rationaleTitle = getString(R.string.health_connect_rationale_title)
             val rationaleBody = getString(R.string.health_connect_rationale_body)
 
@@ -78,6 +83,7 @@ class MainActivity : ComponentActivity() {
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
         setIntent(intent)
+        incomingAction = intent.action
         viewModel.handleIncomingOAuthIntent(intent)
     }
 

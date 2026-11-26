@@ -14,7 +14,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
@@ -252,7 +254,7 @@ fun <T> OpenCultPillSelectorRow(
     }
 }
 
-/** Custom modal pill chooser sheet replacing stock [DropdownMenu] dialogs. */
+/** Custom modal pill chooser sheet replacing stock [DropdownMenu] dialogs, scrollable and filterable. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun <T> OpenCultPillSelectorSheet(
@@ -263,6 +265,14 @@ fun <T> OpenCultPillSelectorSheet(
     onDismiss: () -> Unit,
 ) {
     val colors = OpenCultTheme.colors
+    var searchQuery by remember(title) { mutableStateOf("") }
+    val filteredOptions = remember(options, searchQuery) {
+        val q = searchQuery.trim()
+        if (q.isEmpty()) options
+        else options.filter {
+            it.label.contains(q, ignoreCase = true) || (it.subtitle?.contains(q, ignoreCase = true) == true)
+        }
+    }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         containerColor = colors.elevatedSurface,
@@ -271,6 +281,7 @@ fun <T> OpenCultPillSelectorSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(horizontal = 20.dp, vertical = 8.dp)
                 .padding(bottom = 28.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
@@ -280,7 +291,16 @@ fun <T> OpenCultPillSelectorSheet(
                 style = OpenCultTheme.typography.sectionTitle,
                 color = colors.textPrimary,
             )
-            options.forEach { opt ->
+            if (options.size > 8) {
+                OpenCultTextField(
+                    value = searchQuery,
+                    onValueChange = { searchQuery = it },
+                    label = "Filter (${filteredOptions.size} / ${options.size})",
+                    placeholder = "Search metrics...",
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            filteredOptions.forEach { opt ->
                 val isSelected = opt.value == selected
                 Row(
                     modifier = Modifier

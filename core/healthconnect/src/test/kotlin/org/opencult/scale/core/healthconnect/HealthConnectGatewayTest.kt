@@ -1,6 +1,7 @@
 package org.opencult.scale.core.healthconnect
 
 import android.content.Context
+import androidx.health.connect.client.HealthConnectFeatures
 import androidx.health.connect.client.permission.HealthPermission
 import androidx.health.connect.client.records.BodyFatRecord
 import androidx.health.connect.client.records.Record
@@ -35,12 +36,14 @@ class HealthConnectGatewayTest {
 
     private class FakePlatformClient(
         var granted: Set<String> = HealthConnectGateway.ALL_PERMISSIONS,
+        var unsupportedFeatures: Set<Int> = emptySet(),
     ) : HealthConnectPlatformClient {
         val inserted = mutableListOf<Record>()
         val deletedClientIds = mutableListOf<String>()
         var nextChanges = ExternalChangesBatch("tok-2", emptyList(), emptyList())
 
         override fun getAvailability() = HealthConnectAvailability.AVAILABLE
+        override fun isFeatureAvailable(feature: Int): Boolean = feature !in unsupportedFeatures
         override suspend fun getGrantedPermissions() = granted
         override suspend fun insertRecords(records: List<Record>): List<String> {
             inserted += records
@@ -176,5 +179,21 @@ class HealthConnectGatewayTest {
         val apply2 = gw.pollAndImportExternalWeights("tok-3", "acc")!!
         assertThat(apply2.deletedCount).isEqualTo(1)
         assertThat(db.measurementDao().getById(detId)!!.deletedAtMs).isNotNull()
+    }
+
+    @Test
+    fun gates_history_and_background_permissions_by_health_connect_feature_availability() {
+        val limitedClient = FakePlatformClient(
+            unsupportedFeatures = setOf(
+                HealthConnectFeatures.FEATURE_READ_HEALTH_DATA_HISTORY,
+                HealthConnectFeatures.FEATURE_READ_HEALTH_DATA_IN_BACKGROUND,
+            ),
+        )
+        val gw = HealthConnectGateway(ApplicationProvider.getApplicationContext(), limitedClient, db, repo)
+        val perms = gw.supportedRequestedPermissions(includeRestingHr = true, includeBackgroundRead = true)
+
+        assertThat(perms).contains(HealthConnectGateway.OPT_IN_RESTING_HR_PERMISSION)
+        assertThat(perms).doesNotContain(HealthPermission.PERMISSION_READ_HEALTH_DATA_HISTORY)
+        assertThat(perms).doesNotContain(HealthConnectGateway.OPT_IN_BACKGROUND_READ_PERMISSION)
     }
 }

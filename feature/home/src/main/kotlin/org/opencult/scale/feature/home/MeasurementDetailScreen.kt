@@ -56,6 +56,7 @@ import org.opencult.scale.core.database.entity.RawBlePacketEntity
 import org.opencult.scale.core.designsystem.components.MetricTrendLineChart
 import org.opencult.scale.core.designsystem.components.MetricTrendPoint
 import org.opencult.scale.core.designsystem.components.OpenCultBentoCard
+import org.opencult.scale.core.designsystem.components.OpenCultPillSelectorRow
 import org.opencult.scale.core.designsystem.components.OpenCultPillSelectorSheet
 import org.opencult.scale.core.designsystem.components.OpenCultSecondaryButton
 import org.opencult.scale.core.designsystem.components.OpenCultStatusChip
@@ -172,6 +173,27 @@ class MeasurementDetailViewModel @Inject constructor(
         repository.softDeleteMeasurement(measurementId)
         syncEngine.enqueueOutboxDrain()
     }
+
+    suspend fun syncMeasurementToHealthConnect(measurementId: String): String {
+        val m = repository.getMeasurement(measurementId) ?: return "Measurement not found"
+        val profile = repository.getProfile(m.profileId) ?: return "Profile not found"
+        val modelName = when (m.source) {
+            ScaleTier.CULT_PRO_8E.sourceWireName -> "Cult Smart Scale Pro (8E)"
+            "ble_4e_feet" -> "Cult Scale (4E / Feet)"
+            else -> "OpenCult Reading"
+        }
+        val summary = healthConnectGateway.syncMeasurement(m, profile, modelName)
+        return if (summary.writtenRecords > 0) {
+            "Synced ${summary.writtenRecords} records to Health Connect."
+        } else {
+            summary.skippedReason ?: "Health Connect sync skipped."
+        }
+    }
+}
+
+private enum class DetailMetricFilter {
+    ALL,
+    ACTIVE_ONLY,
 }
 
 /**
@@ -195,10 +217,17 @@ fun MeasurementDetailScreen(
     var detail by remember { mutableStateOf(MeasurementDetailState()) }
     var showReassign by remember { mutableStateOf(false) }
     var trendInspectMetric by remember { mutableStateOf<BodyMetricItem?>(null) }
+    var metricFilter by remember { mutableStateOf(DetailMetricFilter.ALL) }
+    var hcSyncFeedback by remember { mutableStateOf<String?>(null) }
     val expandedCategories = remember {
         mutableStateMapOf(
             MetricCategory.CORE_WEIGHT to true,
             MetricCategory.ADIPOSITY to true,
+            MetricCategory.FLUID_BALANCE to true,
+            MetricCategory.MUSCLE_METABOLIC to true,
+            MetricCategory.SKELETAL_PROTEIN to true,
+            MetricCategory.SEGMENTAL to true,
+            MetricCategory.CIRCUMFERENCE_INDICES to true,
         )
     }
 
@@ -288,6 +317,53 @@ fun MeasurementDetailScreen(
                     modifier = Modifier.weight(1f),
                 )
             }
+            Spacer(Modifier.height(8.dp))
+            OpenCultSecondaryButton(
+                text = "Sync Health Connect",
+                onClick = {
+                    scope.launch {
+                        hcSyncFeedback = viewModel.syncMeasurementToHealthConnect(m.id)
+                        detail = viewModel.load(measurementId)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            hcSyncFeedback?.let { msg ->
+                Spacer(Modifier.height(6.dp))
+                Text(msg, style = OpenCultTheme.typography.body, color = colors.brandCobalt)
+            }
+        }
+
+        val allItems = detail.metricsByCategory.values.flatten()
+        val activeCount = allItems.count { it.value != null }
+        if (allItems.isNotEmpty()) {
+            OpenCultBentoCard(modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text(
+                        text = "Biometric Parameters",
+                        style = OpenCultTheme.typography.sectionTitle,
+                        color = colors.textPrimary,
+                    )
+                    OpenCultStatusChip(
+                        label = "$activeCount / ${allItems.size} Active",
+                        containerColor = if (activeCount == allItems.size) colors.bentoSageSurface else colors.cobaltSubtle,
+                        contentColor = if (activeCount == allItems.size) colors.bentoSageMuted else colors.brandCobalt,
+                    )
+                }
+                Spacer(Modifier.height(8.dp))
+                OpenCultPillSelectorRow(
+                    options = persistentListOf(
+                        PillOption(DetailMetricFilter.ALL, "All ${allItems.size}"),
+                        PillOption(DetailMetricFilter.ACTIVE_ONLY, "Active ($activeCount)"),
+                    ),
+                    selected = metricFilter,
+                    onSelect = { metricFilter = it },
+                )
+            }
         }
 
         if (detail.hcLedger.isNotEmpty()) {
@@ -307,7 +383,12 @@ fun MeasurementDetailScreen(
         }
 
         MetricCategory.entries.forEach { category ->
-            val rows = detail.metricsByCategory[category].orEmpty()
+            val rawRows = detail.metricsByCategory[category].orEmpty()
+            val rows = if (metricFilter == DetailMetricFilter.ACTIVE_ONLY) {
+                rawRows.filter { it.value != null }
+            } else {
+                rawRows
+            }
             if (rows.isNotEmpty()) {
                 val isExpanded = expandedCategories[category] ?: false
                 OpenCultBentoCard(

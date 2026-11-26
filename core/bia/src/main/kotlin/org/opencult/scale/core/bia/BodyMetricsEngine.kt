@@ -8,9 +8,14 @@
 package org.opencult.scale.core.bia
 
 import java.util.Locale
+import kotlin.math.PI
 import kotlin.math.abs
+import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.pow
 import kotlin.math.roundToInt
+import kotlin.math.sin
+import kotlin.math.sqrt
 
 /**
  * Pure JVM body composition calculator emitting all 56 PRD:M-01..M-56 parameters
@@ -19,6 +24,47 @@ import kotlin.math.roundToInt
 object BodyMetricsEngine {
 
     private const val WATER_DENSITY_36C = 0.99513
+    private const val BAND_LOW_PRO_KHZ = 20.0
+    private const val BAND_HIGH_PRO_KHZ = 100.0
+    private const val COLE_FC_KHZ_M = 40.0
+    private const val COLE_FC_KHZ_F = 48.0
+    private const val COLE_ALPHA_M = 0.676
+    private const val COLE_ALPHA_F = 0.664
+    private const val K_ECW_M = 0.306
+    private const val K_ECW_F = 0.316
+    private const val R0_RINF_MAX_BRACKET = 5.0
+
+    private data class ColeFit(val r0: Double, val rInf: Double)
+
+    private fun coleMagnitude(r: Double, fKHz: Double, fcKHz: Double, alpha: Double): Double {
+        val u = (fKHz / fcKHz).pow(alpha)
+        val quarterTurn = alpha * PI / 2.0
+        val denomRe = 1.0 + u * cos(quarterTurn)
+        val denomIm = u * sin(quarterTurn)
+        val denomSq = denomRe * denomRe + denomIm * denomIm
+        val spread = r - 1.0
+        return hypot(1.0 + spread * denomRe / denomSq, -spread * denomIm / denomSq)
+    }
+
+    private fun invertColeTwoBand(zLow: Double, zHigh: Double, male: Boolean): ColeFit? {
+        if (zHigh <= 0.0 || zLow <= zHigh) return null
+        val measured = zLow / zHigh
+        val fc = if (male) COLE_FC_KHZ_M else COLE_FC_KHZ_F
+        val alpha = if (male) COLE_ALPHA_M else COLE_ALPHA_F
+        fun bandRatio(r: Double) =
+            coleMagnitude(r, BAND_LOW_PRO_KHZ, fc, alpha) / coleMagnitude(r, BAND_HIGH_PRO_KHZ, fc, alpha)
+
+        var lo = 1.0 + 1e-9
+        var hi = R0_RINF_MAX_BRACKET
+        if (bandRatio(hi) < measured) return null
+        repeat(60) {
+            val mid = (lo + hi) * 0.5
+            if (bandRatio(mid) < measured) lo = mid else hi = mid
+        }
+        val ratio = (lo + hi) * 0.5
+        val rInf = zLow / coleMagnitude(ratio, BAND_LOW_PRO_KHZ, fc, alpha)
+        return ColeFit(r0 = ratio * rInf, rInf = rInf)
+    }
 
     fun whoBmiCategory(bmi: Double): Pair<Double, String> = when {
         bmi < 18.5 -> 1.0 to "Underweight"
@@ -141,15 +187,17 @@ object BodyMetricsEngine {
             null
         }
 
+        val coleFit: ColeFit?
         val coleR0: Double?
         val coleRinf: Double?
         if (tier == ScaleTier.CULT_PRO_8E && dualFreqImpedance != null) {
             val zLow = dualFreqImpedance.wholeBodyLowOhm
             val zHi = dualFreqImpedance.wholeBodyHighOhm
-            // Cole extracellular/intracellular extrapolation from dual-frequency magnitudes
-            coleR0 = (zLow + (zLow - zHi) * 0.42).coerceIn(zLow, 1400.0)
-            coleRinf = (zHi - (zLow - zHi) * 0.36).coerceIn(120.0, zHi)
+            coleFit = invertColeTwoBand(zLow, zHi, male = anthropometry.sex == BiologicalSex.MALE)
+            coleR0 = coleFit?.r0 ?: (zLow + (zLow - zHi) * 0.42).coerceIn(zLow, 1400.0)
+            coleRinf = coleFit?.rInf ?: (zHi - (zLow - zHi) * 0.36).coerceIn(120.0, zHi)
         } else {
+            coleFit = null
             coleR0 = null
             coleRinf = null
         }
@@ -210,10 +258,11 @@ object BodyMetricsEngine {
         val icwLiters: Double?
         val icwPct: Double?
         val bcmKg: Double?
-        if (tier == ScaleTier.CULT_PRO_8E && dualFreqImpedance != null) {
-            val freqRatio = (dualFreqImpedance.wholeBodyHighOhm / dualFreqImpedance.wholeBodyLowOhm).coerceIn(0.75, 0.96)
-            val ratio = (0.365 + (freqRatio - 0.84) * 0.35 + (anthropometry.ageYears - 30) * 0.0005)
-                .coerceIn(0.355, 0.425)
+        if (tier == ScaleTier.CULT_PRO_8E && dualFreqImpedance != null && coleR0 != null && coleR0 > 0.0) {
+            // De Lorenzo (1997) Eq. B2 on two-band inverted Cole R0 with clinical ECW/TBW bounds
+            val kEcw = if (anthropometry.sex == BiologicalSex.MALE) K_ECW_M else K_ECW_F
+            val ecwDeLorenzo = kEcw * ((anthropometry.heightCm * anthropometry.heightCm * sqrt(weightKg)) / coleR0).pow(2.0 / 3.0)
+            val ratio = (ecwDeLorenzo / tbwKg.coerceAtLeast(1.0)).coerceIn(0.34, 0.45)
             ecwTbwRatio = ratio
             ecwKg = tbwKg * ratio
             icwKg = tbwKg - ecwKg
@@ -249,7 +298,8 @@ object BodyMetricsEngine {
         val muscleMassKg = (fatFreeMassKg - boneMassKg).coerceAtLeast(skeletalMuscleMassKg)
         val totalMuscleRatePct = (muscleMassKg / weightKg) * 100.0
         val smi = skeletalMuscleMassKg / (heightM * heightM)
-        val proteinMassKg = (fatFreeMassKg - tbwKg - boneMassKg).coerceAtLeast(weightKg * 0.08)
+        // 4-compartment mass conservation: Weight = Fat + TBW + Protein + Mineral (ash)
+        val proteinMassKg = (fatFreeMassKg - tbwKg - mineralMassKg).coerceAtLeast(weightKg * 0.08)
         val proteinPct = (proteinMassKg / weightKg) * 100.0
         val muscleToFatRatio = skeletalMuscleMassKg / fatMassKg.coerceAtLeast(0.5)
 

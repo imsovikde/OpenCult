@@ -58,7 +58,7 @@ class MainViewModel @Inject constructor(
         syncEngine.client
     }
 
-    fun requestedHcPermissions(): Set<String> = HealthConnectGateway.requestedPermissions(
+    fun requestedHcPermissions(): Set<String> = healthConnectGateway.supportedRequestedPermissions(
         includeRestingHr = activeMemberSession.restingHrOptInEnabled.value,
         includeBackgroundRead = activeMemberSession.backgroundHcReadEnabled.value,
     )

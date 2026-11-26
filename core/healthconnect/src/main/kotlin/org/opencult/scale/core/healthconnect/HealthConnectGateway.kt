@@ -2,6 +2,7 @@ package org.opencult.scale.core.healthconnect
 
 import android.content.Context
 import androidx.health.connect.client.HealthConnectClient
+import androidx.health.connect.client.HealthConnectFeatures
 import androidx.health.connect.client.changes.DeletionChange
 import androidx.health.connect.client.changes.UpsertionChange
 import androidx.health.connect.client.permission.HealthPermission
@@ -43,6 +44,7 @@ import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
 import java.time.ZoneOffset
+import java.time.temporal.ChronoUnit
 import java.util.UUID
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -90,6 +92,7 @@ data class ExternalSyncApplyResult(
 
 interface HealthConnectPlatformClient {
     fun getAvailability(): HealthConnectAvailability
+    fun isFeatureAvailable(feature: Int): Boolean = true
     suspend fun getGrantedPermissions(): Set<String>
     suspend fun insertRecords(records: List<Record>): List<String>
     suspend fun deleteRecordsByClientId(recordType: KClass<out Record>, clientIds: List<String>)
@@ -116,6 +119,11 @@ class AndroidHealthConnectPlatformClient @Inject constructor(
             HealthConnectClient.SDK_UNAVAILABLE_PROVIDER_UPDATE_REQUIRED -> HealthConnectAvailability.UPDATE_REQUIRED
             else -> HealthConnectAvailability.UNAVAILABLE
         }
+
+    override fun isFeatureAvailable(feature: Int): Boolean =
+        runCatching {
+            clientOrNull()?.features?.getFeatureStatus(feature) == HealthConnectFeatures.FEATURE_STATUS_AVAILABLE
+        }.getOrDefault(false)
 
     override suspend fun getGrantedPermissions(): Set<String> =
         clientOrNull()?.permissionController?.getGrantedPermissions() ?: emptySet()
@@ -198,6 +206,26 @@ class AndroidHealthConnectPlatformClient @Inject constructor(
         while (true) {
             val response = client.getChanges(curToken)
             if (response.changesTokenExpired) {
+                // Codelab fallback on expired changes token: perform 30-day catch-up read before issuing fresh token
+                val now = Instant.now()
+                val catchUp = runCatching {
+                    client.readRecords(
+                        ReadRecordsRequest(
+                            recordType = WeightRecord::class,
+                            timeRangeFilter = TimeRangeFilter.between(now.minus(30, ChronoUnit.DAYS), now),
+                        ),
+                    ).records
+                }.getOrDefault(emptyList())
+                val existingIds = imported.map { it.recordId }.toMutableSet()
+                catchUp.forEach { rec ->
+                    if (rec.metadata.dataOrigin.packageName != selfPackageName && existingIds.add(rec.metadata.id)) {
+                        imported += ExternalWeightImport(
+                            recordId = rec.metadata.id,
+                            weightKg = rec.weight.inKilograms,
+                            measuredAtMs = rec.time.toEpochMilli(),
+                        )
+                    }
+                }
                 val refreshed = getWeightChangesToken()
                 return ExternalChangesBatch(refreshed, imported, deleted)
             }
@@ -273,8 +301,13 @@ class HealthConnectGateway @Inject constructor(
         fun requestedPermissions(
             includeRestingHr: Boolean = false,
             includeBackgroundRead: Boolean = false,
+            includeHistoryRead: Boolean = true,
         ): Set<String> = buildSet {
-            addAll(ALL_PERMISSIONS)
+            addAll(WRITE_PERMISSIONS)
+            addAll(READ_PERMISSIONS)
+            if (!includeHistoryRead) {
+                remove(HealthPermission.PERMISSION_READ_HEALTH_DATA_HISTORY)
+            }
             if (includeRestingHr) add(OPT_IN_RESTING_HR_PERMISSION)
             if (includeBackgroundRead) add(OPT_IN_BACKGROUND_READ_PERMISSION)
         }
@@ -284,6 +317,20 @@ class HealthConnectGateway @Inject constructor(
     }
 
     fun availability(): HealthConnectAvailability = platformClient.getAvailability()
+
+    fun supportedRequestedPermissions(
+        includeRestingHr: Boolean = false,
+        includeBackgroundRead: Boolean = false,
+    ): Set<String> {
+        val historySupported = platformClient.isFeatureAvailable(HealthConnectFeatures.FEATURE_READ_HEALTH_DATA_HISTORY)
+        val backgroundSupported = includeBackgroundRead &&
+            platformClient.isFeatureAvailable(HealthConnectFeatures.FEATURE_READ_HEALTH_DATA_IN_BACKGROUND)
+        return requestedPermissions(
+            includeRestingHr = includeRestingHr,
+            includeBackgroundRead = backgroundSupported,
+            includeHistoryRead = historySupported,
+        )
+    }
 
     suspend fun getGrantedPermissions(): Set<String> = platformClient.getGrantedPermissions()
 

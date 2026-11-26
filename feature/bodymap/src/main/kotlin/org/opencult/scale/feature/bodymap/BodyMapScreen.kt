@@ -40,10 +40,13 @@ import org.opencult.scale.core.database.entity.MeasurementEntity
 import org.opencult.scale.core.designsystem.components.AnatomicalBodyMapCanvas
 import org.opencult.scale.core.designsystem.components.AnatomicalSegment
 import org.opencult.scale.core.designsystem.components.OpenCultBentoCard
+import org.opencult.scale.core.designsystem.components.OpenCultPillSelectorRow
 import org.opencult.scale.core.designsystem.components.OpenCultSectionHeader
 import org.opencult.scale.core.designsystem.components.OpenCultStatusChip
+import org.opencult.scale.core.designsystem.components.PillOption
 import org.opencult.scale.core.designsystem.components.SegmentTier
 import org.opencult.scale.core.designsystem.components.dockScrollClearance
+import kotlinx.collections.immutable.persistentListOf
 import org.opencult.scale.core.designsystem.theme.OpenCultTheme
 import org.opencult.scale.core.designsystem.theme.OpenCultThemeMode
 import org.opencult.scale.core.sync.ActiveMemberSession
@@ -96,6 +99,11 @@ fun BodyMapScreen(
     BodyMapContent(state = state, modifier = modifier)
 }
 
+enum class BodyMapLayerMode(val label: String) {
+    MUSCLE("Muscle"),
+    FAT("Fat"),
+}
+
 @Composable
 fun BodyMapContent(
     state: BodyMapUiState,
@@ -104,29 +112,46 @@ fun BodyMapContent(
     val colors = OpenCultTheme.colors
     val scroll = rememberScrollState()
     var selectedSegment by remember { mutableStateOf(AnatomicalSegment.TRUNK) }
+    var layerMode by remember { mutableStateOf(BodyMapLayerMode.MUSCLE) }
 
     val latest = state.latestMeasurement
     val is8E = latest?.source == ScaleTier.CULT_PRO_8E.sourceWireName && state.report?.segmentalMuscle != null
     val report = state.report
     val pctStd = report?.segmentalMusclePctStd.orEmpty()
+    val fatPctMap = report?.segmentalFatPctOfMass.orEmpty()
 
-    fun tierForPct(pct: Double?): SegmentTier = when {
+    fun tierForMuscle(pct: Double?): SegmentTier = when {
         pct == null -> SegmentTier.LOCKED
         pct >= 102.0 -> SegmentTier.OPTIMAL
         pct >= 94.0 -> SegmentTier.BALANCED
         else -> SegmentTier.ELEVATED
     }
 
-    val segmentTiers = remember(pctStd, is8E) {
+    fun tierForFat(pct: Double?): SegmentTier = when {
+        pct == null -> SegmentTier.LOCKED
+        pct <= 16.0 -> SegmentTier.OPTIMAL
+        pct <= 25.0 -> SegmentTier.BALANCED
+        else -> SegmentTier.ELEVATED
+    }
+
+    val segmentTiers = remember(pctStd, fatPctMap, is8E, layerMode) {
         if (!is8E) {
             AnatomicalSegment.entries.associateWith { SegmentTier.LOCKED }
+        } else if (layerMode == BodyMapLayerMode.MUSCLE) {
+            mapOf(
+                AnatomicalSegment.LEFT_ARM to tierForMuscle(pctStd["left_arm"]),
+                AnatomicalSegment.RIGHT_ARM to tierForMuscle(pctStd["right_arm"]),
+                AnatomicalSegment.TRUNK to tierForMuscle(pctStd["trunk"]),
+                AnatomicalSegment.LEFT_LEG to tierForMuscle(pctStd["left_leg"]),
+                AnatomicalSegment.RIGHT_LEG to tierForMuscle(pctStd["right_leg"]),
+            )
         } else {
             mapOf(
-                AnatomicalSegment.LEFT_ARM to tierForPct(pctStd["left_arm"]),
-                AnatomicalSegment.RIGHT_ARM to tierForPct(pctStd["right_arm"]),
-                AnatomicalSegment.TRUNK to tierForPct(pctStd["trunk"]),
-                AnatomicalSegment.LEFT_LEG to tierForPct(pctStd["left_leg"]),
-                AnatomicalSegment.RIGHT_LEG to tierForPct(pctStd["right_leg"]),
+                AnatomicalSegment.LEFT_ARM to tierForFat(fatPctMap["left_arm"]),
+                AnatomicalSegment.RIGHT_ARM to tierForFat(fatPctMap["right_arm"]),
+                AnatomicalSegment.TRUNK to tierForFat(fatPctMap["trunk"]),
+                AnatomicalSegment.LEFT_LEG to tierForFat(fatPctMap["left_leg"]),
+                AnatomicalSegment.RIGHT_LEG to tierForFat(fatPctMap["right_leg"]),
             )
         }
     }
@@ -180,6 +205,15 @@ fun BodyMapContent(
             }
         }
 
+        OpenCultPillSelectorRow(
+            options = persistentListOf(
+                PillOption(BodyMapLayerMode.MUSCLE, "Muscle"),
+                PillOption(BodyMapLayerMode.FAT, "Fat"),
+            ),
+            selected = layerMode,
+            onSelect = { layerMode = it },
+        )
+
         OpenCultBentoCard(modifier = Modifier.fillMaxWidth(), containerColor = colors.elevatedSurface) {
             AnatomicalBodyMapCanvas(
                 selectedSegment = selectedSegment,
@@ -199,38 +233,71 @@ fun BodyMapContent(
             AnatomicalSegment.RIGHT_LEG -> Triple("right_leg", segMuscle?.rightLegKg, segFat?.rightLegKg)
         }
         val mPct = pctStd[segKey]
+        val fPct = fatPctMap[segKey]
 
-        OpenCultBentoCard(modifier = Modifier.fillMaxWidth(), containerColor = colors.bentoLavenderSurface) {
+        OpenCultBentoCard(
+            modifier = Modifier.fillMaxWidth(),
+            containerColor = if (layerMode == BodyMapLayerMode.MUSCLE) colors.bentoLavenderSurface else colors.bentoPeachSurface,
+        ) {
             Text(
-                text = "${selectedSegment.displayName} (${state.memberName})",
+                text = "${selectedSegment.displayName} (${state.memberName}) - ${layerMode.label}",
                 style = OpenCultTheme.typography.sectionTitle,
                 color = colors.textPrimary,
             )
             Spacer(Modifier.height(8.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                Column {
-                    Text("Segment Muscle", style = OpenCultTheme.typography.microLabel, color = colors.textSecondary)
-                    Text(
-                        text = mKg?.let { String.format(Locale.US, "%.2f kg", it) } ?: "--",
-                        style = OpenCultTheme.typography.bentoStat,
-                        color = colors.textPrimary,
-                    )
+            if (layerMode == BodyMapLayerMode.MUSCLE) {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column {
+                        Text("Segment Muscle", style = OpenCultTheme.typography.microLabel, color = colors.textSecondary)
+                        Text(
+                            text = mKg?.let { String.format(Locale.US, "%.2f kg", it) } ?: "--",
+                            style = OpenCultTheme.typography.bentoStat,
+                            color = colors.textPrimary,
+                        )
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("% of Standard", style = OpenCultTheme.typography.microLabel, color = colors.textSecondary)
+                        Text(
+                            text = mPct?.let { String.format(Locale.US, "%.1f%%", it) } ?: "--",
+                            style = OpenCultTheme.typography.bentoStat,
+                            color = colors.textPrimary,
+                        )
+                    }
                 }
-                Column(horizontalAlignment = Alignment.End) {
-                    Text("% of Standard", style = OpenCultTheme.typography.microLabel, color = colors.textSecondary)
-                    Text(
-                        text = mPct?.let { String.format(Locale.US, "%.1f%%", it) } ?: "--",
-                        style = OpenCultTheme.typography.bentoStat,
-                        color = colors.textPrimary,
-                    )
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = "Regional Fat: " + (fKg?.let { String.format(Locale.US, "%.2f kg", it) } ?: "--") +
+                        (fPct?.let { String.format(Locale.US, " (%.1f%%)", it) } ?: ""),
+                    style = OpenCultTheme.typography.numericInline,
+                    color = colors.textSecondary,
+                )
+            } else {
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column {
+                        Text("Regional Fat Mass", style = OpenCultTheme.typography.microLabel, color = colors.textSecondary)
+                        Text(
+                            text = fKg?.let { String.format(Locale.US, "%.2f kg", it) } ?: "--",
+                            style = OpenCultTheme.typography.bentoStat,
+                            color = colors.textPrimary,
+                        )
+                    }
+                    Column(horizontalAlignment = Alignment.End) {
+                        Text("Segment Fat %", style = OpenCultTheme.typography.microLabel, color = colors.textSecondary)
+                        Text(
+                            text = fPct?.let { String.format(Locale.US, "%.1f%%", it) } ?: "--",
+                            style = OpenCultTheme.typography.bentoStat,
+                            color = colors.textPrimary,
+                        )
+                    }
                 }
+                Spacer(Modifier.height(6.dp))
+                Text(
+                    text = "Segment Muscle: " + (mKg?.let { String.format(Locale.US, "%.2f kg", it) } ?: "--") +
+                        (mPct?.let { String.format(Locale.US, " (%.1f%% std)", it) } ?: ""),
+                    style = OpenCultTheme.typography.numericInline,
+                    color = colors.textSecondary,
+                )
             }
-            Spacer(Modifier.height(6.dp))
-            Text(
-                text = "Regional Fat: " + (fKg?.let { String.format(Locale.US, "%.2f kg", it) } ?: "--"),
-                style = OpenCultTheme.typography.numericInline,
-                color = colors.textSecondary,
-            )
         }
 
         OpenCultSectionHeader(title = "Bilateral Symmetry & Fluid Balance")

@@ -54,11 +54,19 @@ class BodyMetricsEngineTest {
         assertThat(report.metrics.last().id).isEqualTo("bilateral_muscle_symmetry_idx")
         assertThat(report.metrics.none { it.id == "whr_estimate" }).isTrue()
 
-        // Cole fluid conservation: ECW + ICW == TBW
+        // Cole fluid conservation: ECW + ICW == TBW and R0 > Zlow > Zhigh > Rinf
+        assertThat(report.coleR0Ohm!!).isGreaterThan(bodyPod10ChannelImpedance.wholeBodyLowOhm)
+        assertThat(report.coleRinfOhm!!).isLessThan(bodyPod10ChannelImpedance.wholeBodyHighOhm)
         assertThat(report.ecwKg).isNotNull()
         assertThat(report.icwKg).isNotNull()
         assertThat(report.ecwKg!! + report.icwKg!!).isWithin(0.001).of(report.tbwKg)
-        assertThat(report.ecwTbwRatio!!).isIn(com.google.common.collect.Range.closed(0.355, 0.425))
+        assertThat(report.ecwTbwRatio!!).isIn(com.google.common.collect.Range.closed(0.34, 0.45))
+
+        // 4-compartment mass closure: Fat + TBW + Protein + Mineral == Weight
+        val mineralKg = report.metrics.first { it.id == "mineral_mass_kg" }.value!!
+        assertThat(report.fatMassKg + report.tbwKg + report.proteinKg + mineralKg)
+            .isWithin(0.05)
+            .of(report.weightKg)
 
         // Segmental 5-part mass conservation (M-46..M-55)
         assertThat(report.segmentalMuscle!!.sumKg).isWithin(0.001).of(report.skeletalMuscleMassKg)

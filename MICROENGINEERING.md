@@ -127,8 +127,8 @@ Before marking any UI or prototype change complete, verify every box:
 - [ ] Light (`Daylight Clinical Pastel`) and Dark (`Obsidian Night`) modes both maintain `>= 4.5:1` contrast (`DRD:M-04`) and replace ambient shadows with `#232A38` hairlines in dark mode.
 - [ ] All Canvas charts (`C-01`, `C-02`, `C-03`, `C-04`, `C-06`) render via Compose `DrawScope` with round arc caps, staggered stipples, and non-clipping callouts.
 - [ ] Every live number, impedance readout, and hex dump uses `tnum` (`INV-12`).
-- [ ] `4E CS-BF01`, `8E Pro`, and `Pro Feet-Only` states render accurate provenance tags without fake segmental claims (`INV-02`, `INV-03`, `INV-14`).
-- [ ] Empty Home/Reports states display explicit `--` / `--.- kg` / `--%` (`hasData = false`) placeholders with zero seeded fallback values (`INV-26`), `DetachedObsidianDock` separates the 4-tab `#0F1115` capsule (`64.dp`) from the `64.dp` Cobalt `+` FAB (`12.dp` gap + fade scrim), and `<`/`>` bento pager controls preserve `48.dp` hitboxes (`INV-18`).
+- [ ] `4E CS-BF01`, `8E Pro`, and `Pro Feet-Only` states render accurate provenance tags without fake segmental claims (`INV-02`, `INV-03`, `INV-14`), and `BodyMapScreen` exposes interactive `Muscle` / `Fat` layer switching (`DRD:C-06`).
+- [ ] Empty Home/Reports states display explicit `--` / `--.- kg` / `--%` (`hasData = false`) placeholders with zero seeded fallback values (`INV-26`), `DetachedObsidianDock` separates the 4-tab `#0F1115` capsule (`64.dp`) from the `64.dp` Cobalt `+` FAB (`12.dp` gap + fade scrim), `<`/`>` bento pager controls preserve `48.dp` hitboxes (`INV-18`), and modal option sheets (`> 8` items) scroll and filter cleanly.
 
 ---
 

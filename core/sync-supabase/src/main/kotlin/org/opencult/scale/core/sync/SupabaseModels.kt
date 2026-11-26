@@ -15,6 +15,7 @@ data class SupabaseConfig(
 }
 
 data class SyncStatusSnapshot(
+    val backendConfigured: Boolean = false,
     val isSignedIn: Boolean = false,
     val accountId: String? = null,
     val userEmail: String? = null,

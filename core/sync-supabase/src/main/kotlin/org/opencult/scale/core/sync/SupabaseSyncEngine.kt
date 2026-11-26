@@ -44,7 +44,9 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import org.opencult.scale.core.database.OpenCultDatabase
 import org.opencult.scale.core.database.OpenCultRepository
+import org.opencult.scale.core.database.entity.HouseholdProfileEntity
 import org.opencult.scale.core.database.entity.MeasurementEntity
+import org.opencult.scale.core.database.entity.ScaleDeviceEntity
 import java.time.Instant
 import java.time.ZoneId
 import java.util.Collections
@@ -71,7 +73,10 @@ class SupabaseSyncEngine @Inject constructor(
     private val recentLocalMutationIds: MutableSet<String> = Collections.synchronizedSet(LinkedHashSet())
 
     private val _status = MutableStateFlow(
-        SyncStatusSnapshot(lastSyncedAtMs = vault.getLastSyncTimestampMs()),
+        SyncStatusSnapshot(
+            backendConfigured = config.isConfigured,
+            lastSyncedAtMs = vault.getLastSyncTimestampMs(),
+        ),
     )
     val status: StateFlow<SyncStatusSnapshot> = _status.asStateFlow()
 
@@ -100,6 +105,7 @@ class SupabaseSyncEngine @Inject constructor(
                             if (!uid.isNullOrBlank()) {
                                 repository.bindLocalDataToSignedInAccount(uid)
                                 startRealtimeChannelIfNeeded(sb)
+                                scope.launch { pullRemoteChanges() }
                             }
                             _status.update {
                                 it.copy(
@@ -284,11 +290,7 @@ class SupabaseSyncEngine @Inject constructor(
                         )
                     }
                     "raw_packet" -> {
-                        val pkts = db.rawBlePacketDao()
-                            .getForMeasurement(
-                                db.measurementDao().getAllMeasurementIdFallback(item.entityId) ?: "",
-                            )
-                        val target = pkts.firstOrNull { it.id == item.entityId }
+                        val target = db.rawBlePacketDao().getById(item.entityId)
                         if (target != null) {
                             val imps = runCatching {
                                 json.decodeFromString<List<Double>>(target.decodedImpedancesJson)
@@ -359,14 +361,120 @@ class SupabaseSyncEngine @Inject constructor(
         }
     }
 
+    suspend fun pullRemoteChanges(): Result<Int> = runCatching {
+        val sb = client ?: return Result.success(0)
+        sb.auth.currentUserOrNull()?.id ?: return Result.success(0)
+        var applied = 0
+
+        val remoteProfiles = sb.from("household_profiles").select().decodeList<HouseholdProfileDto>()
+        for (dto in remoteProfiles) {
+            val updatedAtMs = parseIsoMs(dto.updatedAt)
+            val existing = db.householdProfileDao().getById(dto.id)
+            if (existing == null || existing.updatedAtMs < updatedAtMs) {
+                db.householdProfileDao().upsert(
+                    HouseholdProfileEntity(
+                        id = dto.id,
+                        accountId = dto.accountId,
+                        displayName = dto.displayName,
+                        avatarColor = dto.avatarColor,
+                        biologicalSex = dto.biologicalSex,
+                        birthDate = dto.birthDate,
+                        heightCm = dto.heightCm,
+                        activityLevel = dto.activityLevel,
+                        athleteMode = dto.athleteMode,
+                        autoMatchWindowKg = dto.autoMatchWindowKg,
+                        targetWeightKg = dto.targetWeightKg,
+                        targetBodyFatPct = dto.targetBodyFatPct,
+                        isPrimaryHcUser = dto.isPrimaryHcUser,
+                        sortOrder = dto.sortOrder,
+                        createdAtMs = parseIsoMs(dto.createdAt, updatedAtMs),
+                        updatedAtMs = updatedAtMs,
+                        deletedAtMs = dto.deletedAt?.let { runCatching { Instant.parse(it).toEpochMilli() }.getOrNull() },
+                    ),
+                )
+                applied++
+            }
+        }
+
+        val remoteDevices = sb.from("scale_devices").select().decodeList<ScaleDeviceDto>()
+        for (dto in remoteDevices) {
+            val updatedAtMs = parseIsoMs(dto.updatedAt)
+            val existing = db.scaleDeviceDao().getDevices().firstOrNull { it.id == dto.id }
+            if (existing == null || existing.updatedAtMs < updatedAtMs) {
+                db.scaleDeviceDao().upsert(
+                    ScaleDeviceEntity(
+                        id = dto.id,
+                        accountId = dto.accountId,
+                        bleMacOrId = dto.bleMacOrId,
+                        advertisedName = dto.advertisedName,
+                        modelTier = dto.modelTier,
+                        electrodeCount = dto.electrodeCount,
+                        firmwareNotes = dto.firmwareNotes,
+                        lastBatteryPct = dto.lastBatteryPct,
+                        lastSeenAtMs = dto.lastSeenAt?.let { runCatching { Instant.parse(it).toEpochMilli() }.getOrNull() },
+                        createdAtMs = parseIsoMs(dto.createdAt, updatedAtMs),
+                        updatedAtMs = updatedAtMs,
+                        deletedAtMs = dto.deletedAt?.let { runCatching { Instant.parse(it).toEpochMilli() }.getOrNull() },
+                    ),
+                )
+                applied++
+            }
+        }
+
+        val remoteMeasurements = sb.from("measurements").select().decodeList<MeasurementDto>()
+        for (dto in remoteMeasurements) {
+            if (isSelfEchoMutation(dto.mutationId)) continue
+            val measuredAtMs = parseIsoMs(dto.measuredAt)
+            val updatedAtMs = parseIsoMs(dto.updatedAt, measuredAtMs)
+            val existing = db.measurementDao().getById(dto.id)
+            if (existing != null && existing.updatedAtMs >= updatedAtMs) continue
+
+            val localDate = Instant.ofEpochMilli(measuredAtMs)
+                .atZone(ZoneId.systemDefault())
+                .toLocalDate()
+                .toString()
+            db.measurementDao().upsert(
+                MeasurementEntity(
+                    id = dto.id,
+                    accountId = dto.accountId,
+                    profileId = dto.profileId,
+                    scaleDeviceId = dto.scaleDeviceId,
+                    measuredAtMs = measuredAtMs,
+                    localDate = localDate,
+                    source = dto.source,
+                    assignmentState = dto.assignmentState,
+                    weightKg = dto.weightKg,
+                    heartRateBpm = dto.heartRateBpm,
+                    impedance50KhzOhm = dto.impedance50KhzOhm,
+                    impedanceHighOhm = dto.impedanceHighOhm,
+                    metricsJson = dto.metricsJson.toString(),
+                    provenanceJson = dto.provenanceJson.toString(),
+                    notes = dto.notes,
+                    mutationId = dto.mutationId,
+                    createdAtMs = parseIsoMs(dto.createdAt, measuredAtMs),
+                    updatedAtMs = updatedAtMs,
+                    deletedAtMs = dto.deletedAt?.let { runCatching { Instant.parse(it).toEpochMilli() }.getOrNull() },
+                ),
+            )
+            applied++
+        }
+
+        val now = System.currentTimeMillis()
+        vault.setLastSyncTimestampMs(now)
+        _status.update { it.copy(lastSyncedAtMs = now, lastError = null) }
+        applied
+    }.onFailure { err ->
+        _status.update { it.copy(lastError = err.message) }
+    }
+
     internal suspend fun applyRemoteRecordJson(recordJson: kotlinx.serialization.json.JsonObject) {
         val dto = runCatching {
             json.decodeFromJsonElement(MeasurementDto.serializer(), recordJson)
         }.getOrNull() ?: return
         if (isSelfEchoMutation(dto.mutationId)) return
 
-        val measuredAtMs = runCatching { Instant.parse(dto.measuredAt).toEpochMilli() }.getOrElse { System.currentTimeMillis() }
-        val updatedAtMs = runCatching { Instant.parse(dto.updatedAt).toEpochMilli() }.getOrElse { measuredAtMs }
+        val measuredAtMs = parseIsoMs(dto.measuredAt)
+        val updatedAtMs = parseIsoMs(dto.updatedAt, measuredAtMs)
         val existing = db.measurementDao().getById(dto.id)
         if (existing != null && existing.updatedAtMs >= updatedAtMs) return
 
@@ -393,25 +501,15 @@ class SupabaseSyncEngine @Inject constructor(
                 provenanceJson = dto.provenanceJson.toString(),
                 notes = dto.notes,
                 mutationId = dto.mutationId,
-                createdAtMs = runCatching { Instant.parse(dto.createdAt).toEpochMilli() }.getOrElse { measuredAtMs },
+                createdAtMs = parseIsoMs(dto.createdAt, measuredAtMs),
                 updatedAtMs = updatedAtMs,
                 deletedAtMs = dto.deletedAt?.let { runCatching { Instant.parse(it).toEpochMilli() }.getOrNull() },
             ),
         )
     }
 
-    private suspend fun org.opencult.scale.core.database.dao.MeasurementDao.getAllMeasurementIdFallback(
-        packetId: String,
-    ): String? {
-        val all = db.measurementDao().getRecentForProfile(
-            db.householdProfileDao().getActiveProfiles().firstOrNull()?.id ?: return null,
-            limit = 50,
-        )
-        for (m in all) {
-            if (db.rawBlePacketDao().getForMeasurement(m.id).any { it.id == packetId }) return m.id
-        }
-        return null
-    }
+    private fun parseIsoMs(iso: String, fallback: Long = System.currentTimeMillis()): Long =
+        runCatching { Instant.parse(iso).toEpochMilli() }.getOrElse { fallback }
 
     companion object {
         const val GUEST_ACCOUNT_ID = "local-guest"

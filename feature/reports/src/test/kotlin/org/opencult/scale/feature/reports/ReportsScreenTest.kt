@@ -3,6 +3,7 @@ package org.opencult.scale.feature.reports
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performScrollTo
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -29,10 +30,12 @@ class ReportsScreenTest {
             }
         }
 
-        composeRule.onNodeWithText("--%").assertIsDisplayed()
-        composeRule.onNodeWithText("No Readings").assertIsDisplayed()
-        composeRule.onNodeWithText("7D").assertIsDisplayed()
-        composeRule.onNodeWithText("30D").assertIsDisplayed()
-        composeRule.onNodeWithText("All").assertIsDisplayed()
+        composeRule.onNodeWithText("--%").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("No Readings").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("0 pts").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("7D").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("30D").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("All").performScrollTo().assertIsDisplayed()
+        composeRule.onNodeWithText("All 55").performScrollTo().assertIsDisplayed()
     }
 }

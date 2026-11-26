@@ -367,7 +367,7 @@ fun ReportsScreenContent(
                 )
             }
             OpenCultStatusChip(
-                label = "All 56",
+                label = "All ${state.selectableMetrics.size}",
                 modifier = Modifier.openCultMicroPress(role = Role.Button) { showMetricPicker = true },
             )
         }
@@ -384,7 +384,13 @@ fun ReportsScreenContent(
                     style = OpenCultTheme.typography.sectionTitle,
                     color = colors.textPrimary,
                 )
-                OpenCultStatusChip(label = activeMetricMeta.unit.ifBlank { "idx" })
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    OpenCultStatusChip(label = "${filtered.size} pts")
+                    OpenCultStatusChip(label = activeMetricMeta.unit.ifBlank { "idx" })
+                }
             }
             Spacer(Modifier.height(8.dp))
             if (bars.isEmpty()) {

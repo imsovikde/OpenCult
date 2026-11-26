@@ -121,6 +121,9 @@ interface RawBlePacketDao {
     @Query("SELECT * FROM raw_ble_packets WHERE measurement_id = :measurementId ORDER BY seq_no ASC")
     suspend fun getForMeasurement(measurementId: String): List<RawBlePacketEntity>
 
+    @Query("SELECT * FROM raw_ble_packets WHERE id = :id LIMIT 1")
+    suspend fun getById(id: String): RawBlePacketEntity?
+
     @Query("SELECT * FROM raw_ble_packets ORDER BY captured_at_ms DESC LIMIT :limit")
     fun observeLatest(limit: Int = 40): Flow<List<RawBlePacketEntity>>
 }

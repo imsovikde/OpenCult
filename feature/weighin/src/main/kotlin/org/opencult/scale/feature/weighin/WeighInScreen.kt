@@ -168,11 +168,11 @@ class WeighInViewModel @Inject constructor(
                 }
             }
             ScaleTier.CULT_BF01_4E -> {
-                val coalesced = "CF 76 0C 1E 28 DF D6 07 01 00 8C CF 76 0C 1E 28 DF D6 07 01".hexToByteArray()
+                val bf01Body = "CF 3C C0 4C 1D F4 01 00 00 00 97".hexToByteArray()
                 listOf(
-                    CultBleConstants.CHAR_NOTIFY_SHORT to coalesced,
-                    CultBleConstants.CHAR_NOTIFY_SHORT to coalesced,
-                    CultBleConstants.CHAR_NOTIFY_SHORT to coalesced,
+                    CultBleConstants.CHAR_NOTIFY_SHORT to bf01Body,
+                    CultBleConstants.CHAR_NOTIFY_SHORT to bf01Body,
+                    CultBleConstants.CHAR_NOTIFY_SHORT to bf01Body,
                 )
             }
             else -> {
@@ -184,10 +184,15 @@ class WeighInViewModel @Inject constructor(
                 )
             }
         }
+        val simName = when (tier) {
+            ScaleTier.CULT_PRO_8E -> "Cult Smart Scale Pro (8E)"
+            ScaleTier.CULT_BF01_4E -> "CS-BF01"
+            else -> "Cult Smart Scale Pro (Feet-Only)"
+        }
         bleController.replayFixtureSequence(
             anthropometry = anthro,
             tier = tier,
-            deviceName = "SIM_CULT_${tier.name}",
+            deviceName = simName,
             deviceMac = "SIM-00:11:22:33:44:55",
             frames = frames,
         )
@@ -266,7 +271,12 @@ class WeighInViewModel @Inject constructor(
         )
 
         if (outcome is HouseholdMatchOutcome.Unique) {
-            healthConnectGateway.syncMeasurement(measurement, targetProfile, snap.deviceName.ifBlank { "Cult Scale" })
+            val resolvedModel = when {
+                report.effectiveTier == ScaleTier.CULT_PRO_8E -> "Cult Smart Scale Pro (8E)"
+                snap.detectedTier == ScaleTier.CULT_BF01_4E -> "Cult Scale CS-BF01 (4E)"
+                else -> snap.deviceName.ifBlank { "Cult Smart Scale" }
+            }
+            healthConnectGateway.syncMeasurement(measurement, targetProfile, resolvedModel)
         } else {
             soundEngine.play(OpenCultSoundCue.AMBIGUOUS_MEMBER_PROMPT)
         }
@@ -577,26 +587,37 @@ fun WeighInScreen(
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 OpenCultSecondaryButton(
-                    text = "Sim ${if (selectedTier == ScaleTier.CULT_BF01_4E) "CS-BF01" else "Pro 8E"}",
+                    text = "Sim Pro 8E",
                     onClick = {
                         scope.launch {
                             val anthro = viewModel.getActiveAnthropometry()
-                            viewModel.launchSimulatedFixture(selectedTier, anthro)
+                            viewModel.launchSimulatedFixture(ScaleTier.CULT_PRO_8E, anthro)
                         }
                     },
                     modifier = Modifier.weight(1f),
                 )
                 OpenCultSecondaryButton(
-                    text = "Sim Feet-Only",
+                    text = "Sim CS-BF01",
                     onClick = {
                         scope.launch {
                             val anthro = viewModel.getActiveAnthropometry()
-                            viewModel.launchSimulatedFixture(ScaleTier.CULT_PRO_FEET_ONLY, anthro)
+                            viewModel.launchSimulatedFixture(ScaleTier.CULT_BF01_4E, anthro)
                         }
                     },
                     modifier = Modifier.weight(1f),
                 )
             }
+            Spacer(Modifier.height(8.dp))
+            OpenCultSecondaryButton(
+                text = "Sim Feet-Only (No Handles)",
+                onClick = {
+                    scope.launch {
+                        val anthro = viewModel.getActiveAnthropometry()
+                        viewModel.launchSimulatedFixture(ScaleTier.CULT_PRO_FEET_ONLY, anthro)
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
         }
     }
 
