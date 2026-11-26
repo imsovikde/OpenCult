@@ -36,7 +36,10 @@ flowchart LR
 | [AGENTS.md](AGENTS.md) | Project agent governance, honesty contract, strict UI prototype compliance, Second Brain protocol, GPL-3.0 rules |
 | [PRD.md](PRD.md) | Product scope, hardware matrix, complete 56-parameter catalog, Health Connect & Supabase flows |
 | [TRD.md](TRD.md) | Stack, BLE wire protocol (`0xCF` / `0xBE` / `0xDF`), BIA math, PostgreSQL DDL, RLS, Realtime, Health Connect |
-| [INVARIANTS.md](INVARIANTS.md) | 16 hard architectural and UI invariants (`INV-01` .. `INV-16`) |
+| [INVARIANTS.md](INVARIANTS.md) | 23 binary architectural, hardware, UI, and motion invariants (`INV-01` .. `INV-23`) |
+| [HALL_OF_SHAME.md](HALL_OF_SHAME.md) | Living regression ledger logging root causes, fixes, and prevention rules for every defect |
+| [MICROENGINEERING.md](MICROENGINEERING.md) | Applied UI micro-engineering rules, 4-stage interaction contract, 48dp hitboxes, Canvas geometry |
+| [MOTIONENGINEERING.md](MOTIONENGINEERING.md) | Closed spring/easing tokens, polar arc & telemetry damping, 120Hz GPU rules, reduced-motion parity |
 | [DRD.md](DRD.md) | Design tokens, custom Canvas charts, 9-screen layout spec, Daylight Pastel & Obsidian Night modes |
 | [prompts/01_OPEN_DESIGN_PROTOTYPE_PROMPT.md](prompts/01_OPEN_DESIGN_PROTOTYPE_PROMPT.md) | Initial Open Design `# Prototype` prompt |
 | [prompts/04_OPEN_DESIGN_PROTOTYPE_V2_PROMPT.md](prompts/04_OPEN_DESIGN_PROTOTYPE_V2_PROMPT.md) | Upgraded v2 Open Design prompt fixing Android bezel, multi-screen gallery, minimalist screenshot parity, and live 4E vs 8E scale switching |
