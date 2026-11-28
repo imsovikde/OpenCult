@@ -74,25 +74,28 @@ def sha256_file(path: Path) -> str:
 def bucket_commits(commits: list[tuple[str, str]]) -> list[tuple[str, list[str]]]:
     buckets: dict[str, list[str]] = {
         "BLE protocol and BIA math": [],
-        "Health Connect and cloud sync": [],
-        "UI screens, charts, and filtering": [],
-        "Bug fixes and regression hardening": [],
-        "Security, CI, and repository tooling": [],
+        "Authentication, permissions, and Health Connect": [],
+        "Cloud sync and database": [],
+        "UI screens, motion, and navigation": [],
+        "Bug fixes and regression checks": [],
+        "Security, CI, and documentation": [],
         "Other changes": [],
     }
     for sha, msg in commits:
         lower = msg.lower()
         entry = f"- {msg} (`{sha}`)"
-        if any(k in lower for k in ("ble", "bia", "cole", "compartment", "packet", "0xbe", "0xcf", "cs-bf01")):
+        if any(k in lower for k in ("ble", "bia", "cole", "compartment", "packet", "0xbe", "0xcf", "0xffb0", "cs-bf01", "receiver")):
             buckets["BLE protocol and BIA math"].append(entry)
-        elif any(k in lower for k in ("health connect", "healthconnect", "supabase", "rls", "outbox", "sync")):
-            buckets["Health Connect and cloud sync"].append(entry)
-        elif any(k in lower for k in ("ui", "screen", "chart", "bodymap", "detail", "report", "filter", "dock")):
-            buckets["UI screens, charts, and filtering"].append(entry)
+        elif any(k in lower for k in ("auth", "turnstile", "email", "otp", "permission", "health connect", "healthconnect")):
+            buckets["Authentication, permissions, and Health Connect"].append(entry)
+        elif any(k in lower for k in ("supabase", "rls", "outbox", "sync", "room", "migration")):
+            buckets["Cloud sync and database"].append(entry)
+        elif any(k in lower for k in ("ui", "screen", "chart", "bodymap", "detail", "report", "filter", "dock", "onboarding", "weighin", "motion")):
+            buckets["UI screens, motion, and navigation"].append(entry)
         elif re.match(r"^fix(\([^)]+\))?:", lower) or "shame-" in lower:
-            buckets["Bug fixes and regression hardening"].append(entry)
+            buckets["Bug fixes and regression checks"].append(entry)
         elif re.match(r"^(sec|security|ci|build|chore|docs|release)(\([^)]+\))?:", lower):
-            buckets["Security, CI, and repository tooling"].append(entry)
+            buckets["Security, CI, and documentation"].append(entry)
         else:
             buckets["Other changes"].append(entry)
     return [(title, items) for title, items in buckets.items() if items]
@@ -125,12 +128,12 @@ def render_notes(
         "| Cult Smart Body Fat Scale (CS-BF01, 4E) | `FD 37 -> F1 -> F2 00` handshake, `0xCF` HR + 50 kHz LE impedance | Core weight, heart rate, 50 kHz BIA body composition, segmental cards locked | Weight, Body Fat %, Lean Mass, Bone Mass, Water Mass, BMR, Heart Rate, Height |",
         "| Pro Feet-Only (No handles) | `0xCF` weight-only lock | Weight, BMI, and anthropometric estimates only; BIA compartments suppressed | Weight, Height (and Heart Rate when present) |",
         "",
-        "## Engineering highlights in this release",
+        "## Changes in this release",
         "",
-        "- Two-band Cole-Cole bisection (`20 kHz` / `100 kHz`) and De Lorenzo Eq. B2 water partitioning paired with 4-compartment mineral/protein conservation (`Weight = Fat + TBW + Protein + Mineral`).",
-        "- Health Connect alignment matching Android's official Health Connect codelab: `VIEW_PERMISSION_USAGE` and `ACTION_SHOW_PERMISSIONS_RATIONALE` handling, `HealthConnectFeatures` runtime gating for History/Background scopes, and a 30-day `ReadRecordsRequest<WeightRecord>` catch-up on expired changes tokens.",
-        "- Full UI visibility and multi-axis filtering: 5-segment Body Map `Muscle` vs `Fat` layer switch, Measurement Detail `All 56` vs `Active Only` parameter filter with direct `Sync Health Connect`, separated `Sim Pro 8E` / `Sim CS-BF01` / `Sim Feet-Only` QA buttons, and scrollable searchable 55-metric Reports selector.",
-        "- Multi-member sync reliability: direct primary-key lookup (`RawBlePacketDao.getById`) for all 10 household profiles, RLS-scoped Supabase push+pull sync on sign-in, and least-privilege Android manifest (`BLUETOOTH_SCAN`/`BLUETOOTH_CONNECT` with zero location or advertising permissions).",
+        "- Android 14+ BLE stability (`BleReceiverCompatContext` flags all internal `blessed-kotlin` `registerReceiver` calls with `Context.RECEIVER_EXPORTED`, defers `BluetoothCentralManager` startup until runtime permissions are granted, synchronizes device caches, resolves `WRITE` vs `WRITE_NO_RESPONSE` per GATT characteristic, and decodes `0xFFB0` / `0xFFF0` scale frames).",
+        "- Email verification and signup guard (`SupabaseSyncEngine` pairs Cloudflare Turnstile verification in `TurnstileWebBridge` with a client disposable-domain filter, Postgres `private.before_user_created_hook`, Supabase Edge Function `before-user-created` HMAC/DNS check, and 6-digit email OTP confirmation alongside explicit offline mode).",
+        "- Four-step `HorizontalPager` onboarding carousel with direct runtime Bluetooth and Health Connect recovery links (`ACTION_REQUEST_ENABLE`, App Details settings, and Play Store `UPDATE_REQUIRED` fallback), zero prefilled member names or weights, and clear scope disclosure explaining 8 writable Health Connect record types versus 20/56 locally stored scale parameters.",
+        "- Redesigned `WeighInScreen` with adaptive compact stepper layout, vertical separation between `AmbientRadarRings` and status labels, responsive stacking at `1.5x` font scaling, relocated QA fixture replay to `InspectorScreen`, and spring-driven root transitions with a GPU-translated white active pill in `DetachedObsidianDock`.",
         "",
         f"## Commits included ({range_label})",
         "",

@@ -54,8 +54,9 @@ Define all animation specs in a single `core/designsystem` file (`OpenCultMotion
 - **Stage 3 (Contact & Impedance Sweep `0xBE` / `FD 37`):** Foot and hand pad indicators light sequentially (`0x01 -> 0x08 -> 0x05` for `8E`; foot pads + live `FD 37 / F1 / F2 00` log for `CS-BF01`). Ring progress sweeps smoothly (`strokeDashoffset` / Compose `drawArc` sweep angle `0f..360f`), pauses `<= 320 ms` at `100%` so the user reads completion, then advances to Stage 4.
 - **Stage 4 (Lock & Sync Confirm):** Shows `Saved Locally` immediately (`< 50 ms`, `INV-06`), followed by crisp badge transitions as Health Connect write and Supabase push complete, or opens the Ambiguous Profile Picker immediately when `assignment_state = 'pending_review'` (`INV-09`).
 
-### E. Floating Dock Pill & Compare Bar (`DRD:C-05`, `DRD:S-06`)
-- Tab switches inside the `#0F1115` capsule glide the `46.dp` contrasting active circle horizontally (`MotionTokens.SpatialDefault`) instead of blinking between icons.
+### E. Floating Dock Pill, Root Transitions, & Compare Bar (`DRD:C-05`, `DRD:S-06`)
+- Tab switches inside the `#0F1115` capsule slide a single GPU-translated active pill horizontally (`MotionTokens.SpatialDefault`, `graphicsLayer { translationX }`) instead of blinking independent pills, while keeping `>= 48.dp` touch slot width on `320.dp`+ viewports (`INV-35`).
+- `OpenCultRootUi` animates Onboarding exit, directional tab shifts (`tabContentTransition`), `WeighIn` vertical spring sheet entry/exit (`sheetOverlayTransition`), and `Inspector`/`MeasurementDetail` horizontal pushes (`detailOverlayTransition`) exclusively through `OpenCultMotion` specs, while `OnboardingScreen` applies scroll/pager GPU parallax (`translationX`) on the `DRD:C-07` miniature phone card.
 - History multi-select comparison bar slides upward from `navigationBarsBottom` using `MotionTokens.SheetEnter` and reserves extra `LazyColumn` bottom padding dynamically so bottom history cards remain scrollable above the compare bar.
 
 ### F. Bounded Stagger Rule (Lists & 56-Parameter Accordion)
@@ -90,7 +91,8 @@ When reduced motion is enabled:
 ## 6. Pre-Commit Motion Audit Checklist
 
 - [ ] Every Compose animation uses a named `MotionTokens.*` spec with zero inline `spring()` / magic duration literals outside `core/designsystem` (`INV-19`).
-- [ ] All transforms and fades execute via `graphicsLayer` or `Canvas` lambdas with cached `Path` / `PathEffect` objects.
+- [ ] All transforms and fades execute via `graphicsLayer` or `Canvas` lambdas with cached `Path` / `PathEffect` objects (`DetachedObsidianDock` single sliding pill and `OpenCultRootUi` `AnimatedContent` specs resolve exclusively from `OpenCultMotion`).
+- [ ] `HorizontalPager` onboarding parallax (`DRD:C-07`), tab slides, and sheet/detail overlays collapse cleanly to zero displacement when `Animator duration scale = 0` (`INV-20`, `INV-35`).
 - [ ] `DRD:C-03` Arc Gauge thumb glides along polar radius coordinates (`angleDeg`), never cutting linear X/Y chords.
 - [ ] `0xCF` weight digits and impedance bars use critically/near-critically damped `TelemetryGlide` (`dampingRatio >= 0.90f`) with zero numerical bounce overshoot.
 - [ ] BLE lock haptics fire at most once per physical weigh-in lock edge, ignoring coalesced duplicate frames (`INV-21`).

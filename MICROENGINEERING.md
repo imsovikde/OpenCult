@@ -128,7 +128,8 @@ Before marking any UI or prototype change complete, verify every box:
 - [ ] All Canvas charts (`C-01`, `C-02`, `C-03`, `C-04`, `C-06`) render via Compose `DrawScope` with round arc caps, staggered stipples, and non-clipping callouts.
 - [ ] Every live number, impedance readout, and hex dump uses `tnum` (`INV-12`).
 - [ ] `4E CS-BF01`, `8E Pro`, and `Pro Feet-Only` states render accurate provenance tags without fake segmental claims (`INV-02`, `INV-03`, `INV-14`), and `BodyMapScreen` exposes interactive `Muscle` / `Fat` layer switching (`DRD:C-06`).
-- [ ] Empty Home/Reports states display explicit `--` / `--.- kg` / `--%` (`hasData = false`) placeholders with zero seeded fallback values (`INV-26`), `DetachedObsidianDock` separates the 4-tab `#0F1115` capsule (`64.dp`) from the `64.dp` Cobalt `+` FAB (`12.dp` gap + fade scrim), `<`/`>` bento pager controls preserve `48.dp` hitboxes (`INV-18`), and modal option sheets (`> 8` items) scroll and filter cleanly.
+- [ ] Empty Home/Reports states display explicit `--` / `--.- kg` / `--%` (`hasData = false`) placeholders with zero seeded fallback values (`INV-26`), `DetachedObsidianDock` separates the 4-tab `#0F1115` capsule (`64.dp`) with a single sliding white active pill indicator (`>= 48.dp` slot width) from the `64.dp` Cobalt `+` FAB (`12.dp` gap + fade scrim), `<`/`>` bento pager controls preserve `48.dp` hitboxes (`INV-18`), and modal option sheets (`> 8` items) scroll and filter cleanly.
+- [ ] `WeighInScreen` (`DRD:C-08`) keeps `AmbientRadarRings` (`148.dp`) cleanly separated above text/status blocks with zero overlap at `360.dp` / `1.5x` fontScale, truncates long scale names beside `Connect` chips, and contains zero simulation replay controls (isolated in `InspectorScreen`).
 
 ---
 
@@ -143,3 +144,5 @@ Before marking any UI or prototype change complete, verify every box:
 | Proportional (non-`tnum`) font on weigh-in digits or ohm cells | Causes horizontal column trembling on `130 ms` updates (`INV-12`) | `fontFeatureSettings = "tnum"` on numeric styles |
 | Hover-only labels, tooltips, or action reveals | Unreachable on Android touch devices | Explicit tap/press selection + TalkBack labels |
 | Faking 8-electrode segmental values in `4E` or `Pro Feet-Only` mode | Clinical dishonesty (`INV-02`, `INV-03`, `SHAME-003`) | Gate segmental cards by verified `ScaleHardwareMode` |
+| Multi-line status labels overlaid directly on top of `AmbientRadarRings` | Visual collision on narrow/scaled phones (`SHAME-026`, `INV-34`) | Vertical separation between radar icon box and status `Column` |
+| Developer simulation fixture buttons inside `WeighInScreen` | Pollutes primary user scan workflow (`SHAME-026`, `INV-34`) | Collapsible QA replay card inside `InspectorScreen` (`BLE Hex` tab) |
