@@ -6,6 +6,14 @@ import android.net.Uri
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.google.common.truth.Truth.assertThat
+import io.ktor.client.engine.mock.MockEngine
+import io.ktor.client.engine.mock.respond
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpStatusCode
+import io.ktor.http.content.OutgoingContent
+import io.ktor.http.content.TextContent
+import io.ktor.http.headersOf
 import kotlinx.coroutines.test.runTest
 import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.jsonObject
@@ -132,5 +140,113 @@ class SupabaseSyncTest {
         assertThat(reloaded.soundFeedbackEnabled.value).isFalse()
         assertThat(reloaded.restingHrOptInEnabled.value).isTrue()
         assertThat(reloaded.backgroundHcReadEnabled.value).isTrue()
+    }
+
+    @Test
+    fun email_validator_blocks_disposable_domains_subdomains_and_weak_passwords_while_allowing_real_mail() {
+        assertThat(EmailSecurityValidator.validateEmailForAuth("bot@mailinator.com"))
+            .isInstanceOf(EmailValidationResult.Invalid::class.java)
+        assertThat(EmailSecurityValidator.validateEmailForAuth("spam@sub.yopmail.com"))
+            .isInstanceOf(EmailValidationResult.Invalid::class.java)
+        assertThat(EmailSecurityValidator.validateEmailForAuth("local@dev.local"))
+            .isInstanceOf(EmailValidationResult.Invalid::class.java)
+        assertThat(EmailSecurityValidator.validateEmailForAuth("fake@example.com"))
+            .isInstanceOf(EmailValidationResult.Invalid::class.java)
+
+        val valid = EmailSecurityValidator.validateEmailForAuth("Alice+OpenCult@Gmail.com")
+        assertThat(valid).isEqualTo(EmailValidationResult.Valid("alice+opencult@gmail.com"))
+
+        assertThat(EmailSecurityValidator.validatePasswordForAuth("weak12"))
+            .isInstanceOf(PasswordValidationResult.Invalid::class.java)
+        assertThat(EmailSecurityValidator.validatePasswordForAuth("onlylowercase1"))
+            .isInstanceOf(PasswordValidationResult.Invalid::class.java)
+        assertThat(EmailSecurityValidator.validatePasswordForAuth("OpenCult2026"))
+            .isEqualTo(PasswordValidationResult.Valid)
+    }
+
+    @Test
+    fun turnstile_web_bridge_escapes_site_key_and_includes_csp_header() {
+        val html = TurnstileWebBridge.buildChallengeHtml("0x4AAA\"<script>alert(1)</script>", darkTheme = true)
+        assertThat(html).contains("https://challenges.cloudflare.com/turnstile/v0/api.js")
+        assertThat(html).contains("sitekey: '0x4AAAscriptalert1script'")
+        assertThat(html).contains("theme: 'dark'")
+        assertThat(html).contains("Content-Security-Policy")
+    }
+
+    @Test
+    fun signup_and_otp_verify_fail_closed_for_disposable_email_and_forward_turnstile_token_via_mock_http() = runTest {
+        val recordedBodies = mutableListOf<Pair<String, String>>()
+        val mockEngine = MockEngine { request ->
+            val path = request.url.encodedPath
+            val bodyText = when (val content = request.body) {
+                is TextContent -> content.text
+                is OutgoingContent.ByteArrayContent -> content.bytes().decodeToString()
+                else -> content.toString()
+            }
+            recordedBodies.add(path to bodyText)
+            val headers = headersOf(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+            when {
+                path.endsWith("/signup") -> respond(
+                    content = """{"id":"11111111-1111-1111-1111-111111111111","aud":"authenticated","email":"alex@proton.me"}""",
+                    status = HttpStatusCode.OK,
+                    headers = headers,
+                )
+                path.endsWith("/verify") -> respond(
+                    content = """
+                        {
+                          "access_token": "jwt-access-1",
+                          "token_type": "bearer",
+                          "expires_in": 3600,
+                          "refresh_token": "jwt-refresh-1",
+                          "user": {"id":"11111111-1111-1111-1111-111111111111","aud":"authenticated","email":"alex@proton.me"}
+                        }
+                    """.trimIndent(),
+                    status = HttpStatusCode.OK,
+                    headers = headers,
+                )
+                path.endsWith("/resend") -> respond(
+                    content = """{}""",
+                    status = HttpStatusCode.OK,
+                    headers = headers,
+                )
+                else -> respond(content = """{}""", status = HttpStatusCode.OK, headers = headers)
+            }
+        }
+
+        val configuredEngine = SupabaseSyncEngine(
+            context = ctx,
+            config = SupabaseConfig(
+                url = "https://mock.supabase.co",
+                anonKey = "public-anon-key",
+                turnstileSiteKey = "1x00000000000000000000AA",
+            ),
+            vault = vault,
+            db = db,
+            repository = repo,
+        ).apply { testHttpEngine = mockEngine }
+
+        // 1. Disposable email blocked locally before hitting network.
+        val blocked = configuredEngine.signUpWithEmail("bot@mailinator.com", "OpenCult2026", "tok-1")
+        assertThat(blocked.isFailure).isTrue()
+        assertThat(recordedBodies).isEmpty()
+
+        // 2. Missing Turnstile token blocked locally before hitting network.
+        val missingCaptcha = configuredEngine.signUpWithEmail("alex@proton.me", "OpenCult2026", null)
+        assertThat(missingCaptcha.isFailure).isTrue()
+        assertThat(recordedBodies).isEmpty()
+
+        // 3. Valid signup forwards captchaToken & enters confirmation wait state.
+        val sent = configuredEngine.signUpWithEmail("alex@proton.me", "OpenCult2026", "cf-turnstile-token-99")
+        assertThat(sent.isSuccess).isTrue()
+        assertThat(sent.getOrThrow()).isEqualTo(AuthActionOutcome.VerificationEmailSent("alex@proton.me"))
+        assertThat(recordedBodies.any { (p, b) -> p.endsWith("/signup") && b.contains("cf-turnstile-token-99") }).isTrue()
+
+        // 4. OTP verification confirms account cleanly.
+        val verified = configuredEngine.verifyEmailSignupOtp("alex@proton.me", "123456")
+        assertThat(verified.isSuccess).isTrue()
+
+        // 5. Resend confirmation passes captcha token too.
+        val resent = configuredEngine.resendSignUpConfirmation("alex@proton.me", "cf-turnstile-token-100")
+        assertThat(resent.isSuccess).isTrue()
     }
 }

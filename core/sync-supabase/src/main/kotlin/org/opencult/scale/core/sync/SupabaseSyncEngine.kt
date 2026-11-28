@@ -16,6 +16,7 @@ import dagger.assisted.AssistedInject
 import dagger.hilt.android.qualifiers.ApplicationContext
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.auth.Auth
+import io.github.jan.supabase.auth.OtpType
 import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.auth.handleDeeplinks
 import io.github.jan.supabase.auth.providers.builtin.Email
@@ -28,6 +29,7 @@ import io.github.jan.supabase.realtime.Realtime
 import io.github.jan.supabase.realtime.channel
 import io.github.jan.supabase.realtime.postgresChangeFlow
 import io.github.jan.supabase.realtime.realtime
+import io.ktor.client.engine.HttpClientEngine
 import io.ktor.client.engine.okhttp.OkHttp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -53,6 +55,11 @@ import java.util.Collections
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
+
+sealed interface AuthActionOutcome {
+    data class SignedIn(val accountId: String, val email: String?) : AuthActionOutcome
+    data class VerificationEmailSent(val email: String) : AuthActionOutcome
+}
 
 /**
  * Offline-first Supabase Auth + Postgrest + Realtime synchronization engine (`TRD:SYNC`).
@@ -80,13 +87,15 @@ class SupabaseSyncEngine @Inject constructor(
     )
     val status: StateFlow<SyncStatusSnapshot> = _status.asStateFlow()
 
+    internal var testHttpEngine: HttpClientEngine? = null
+
     val client: SupabaseClient? by lazy {
         if (!config.isConfigured) return@lazy null
         createSupabaseClient(
             supabaseUrl = config.url,
             supabaseKey = config.anonKey,
         ) {
-            httpEngine = OkHttp.create()
+            httpEngine = testHttpEngine ?: OkHttp.create()
             install(Auth) {
                 scheme = "opencult"
                 host = "auth"
@@ -138,26 +147,163 @@ class SupabaseSyncEngine @Inject constructor(
     fun currentAccountIdOrGuest(): String =
         client?.auth?.currentUserOrNull()?.id ?: _status.value.accountId ?: GUEST_ACCOUNT_ID
 
-    suspend fun signInWithEmail(email: String, password: String): Result<Unit> = runCatching {
-        val sb = client ?: error("Supabase is not configured in BuildConfig")
-        sb.auth.signInWith(Email) {
-            this.email = email.trim()
-            this.password = password
+    val backendTurnstileSiteKey: String
+        get() = config.turnstileSiteKey.trim()
+
+    val isTurnstileRequired: Boolean
+        get() = config.turnstileEnabled
+
+    suspend fun signInWithEmail(
+        email: String,
+        password: String,
+        captchaToken: String? = null,
+    ): Result<Unit> {
+        val emailCheck = EmailSecurityValidator.validateEmailForAuth(email)
+        if (emailCheck is EmailValidationResult.Invalid) {
+            _status.update { st -> st.copy(lastError = emailCheck.reason) }
+            return Result.failure(IllegalArgumentException(emailCheck.reason))
         }
-        Unit
-    }.onFailure { err ->
-        _status.update { it.copy(lastError = err.message) }
+        if (password.isEmpty()) {
+            return Result.failure(IllegalArgumentException("Enter your password."))
+        }
+        val normalized = (emailCheck as EmailValidationResult.Valid).normalizedEmail
+        if (config.turnstileEnabled && captchaToken.isNullOrBlank()) {
+            val msg = "Complete the Cloudflare Turnstile check before signing in."
+            _status.update { it.copy(lastError = msg) }
+            return Result.failure(IllegalStateException(msg))
+        }
+        return runCatching {
+            val sb = client ?: error("Supabase is not configured in BuildConfig")
+            sb.auth.signInWith(Email) {
+                this.email = normalized
+                this.password = password
+                if (!captchaToken.isNullOrBlank()) {
+                    this.captchaToken = captchaToken
+                }
+            }
+            Unit
+        }.fold(
+            onSuccess = { Result.success(Unit) },
+            onFailure = { err ->
+                val friendly = EmailSecurityValidator.friendlyAuthErrorMessage(err)
+                _status.update { it.copy(lastError = friendly) }
+                Result.failure(IllegalStateException(friendly, err))
+            },
+        )
     }
 
-    suspend fun signUpWithEmail(email: String, password: String): Result<Unit> = runCatching {
-        val sb = client ?: error("Supabase is not configured in BuildConfig")
-        sb.auth.signUpWith(Email) {
-            this.email = email.trim()
-            this.password = password
+    suspend fun signUpWithEmail(
+        email: String,
+        password: String,
+        captchaToken: String? = null,
+    ): Result<AuthActionOutcome> {
+        val emailCheck = EmailSecurityValidator.validateEmailForAuth(email)
+        if (emailCheck is EmailValidationResult.Invalid) {
+            _status.update { it.copy(lastError = emailCheck.reason) }
+            return Result.failure(IllegalArgumentException(emailCheck.reason))
         }
-        Unit
-    }.onFailure { err ->
-        _status.update { it.copy(lastError = err.message) }
+        val passCheck = EmailSecurityValidator.validatePasswordForAuth(password)
+        if (passCheck is PasswordValidationResult.Invalid) {
+            _status.update { it.copy(lastError = passCheck.reason) }
+            return Result.failure(IllegalArgumentException(passCheck.reason))
+        }
+        val normalized = (emailCheck as EmailValidationResult.Valid).normalizedEmail
+        if (config.turnstileEnabled && captchaToken.isNullOrBlank()) {
+            val msg = "Complete the Cloudflare Turnstile human check before creating an account."
+            _status.update { it.copy(lastError = msg) }
+            return Result.failure(IllegalStateException(msg))
+        }
+        return runCatching {
+            val sb = client ?: error("Supabase is not configured in BuildConfig")
+            sb.auth.signUpWith(Email, redirectUrl = "opencult://auth/callback") {
+                this.email = normalized
+                this.password = password
+                if (!captchaToken.isNullOrBlank()) {
+                    this.captchaToken = captchaToken
+                }
+            }
+            val activeSession = sb.auth.currentSessionOrNull()
+            if (activeSession != null && !activeSession.user?.id.isNullOrBlank()) {
+                AuthActionOutcome.SignedIn(
+                    accountId = activeSession.user!!.id,
+                    email = activeSession.user?.email ?: normalized,
+                )
+            } else {
+                AuthActionOutcome.VerificationEmailSent(normalized)
+            }
+        }.fold(
+            onSuccess = { outcome ->
+                _status.update { it.copy(lastError = null) }
+                Result.success(outcome)
+            },
+            onFailure = { err ->
+                val friendly = EmailSecurityValidator.friendlyAuthErrorMessage(err)
+                _status.update { it.copy(lastError = friendly) }
+                Result.failure(IllegalStateException(friendly, err))
+            },
+        )
+    }
+
+    suspend fun verifyEmailSignupOtp(email: String, code: String): Result<Unit> {
+        val emailCheck = EmailSecurityValidator.validateEmailForAuth(email)
+        if (emailCheck is EmailValidationResult.Invalid) {
+            return Result.failure(IllegalArgumentException(emailCheck.reason))
+        }
+        val cleanCode = code.trim().replace(" ", "")
+        if (cleanCode.length !in 6..8 || !cleanCode.all { it.isDigit() }) {
+            return Result.failure(IllegalArgumentException("Enter the 6-digit verification code from your email."))
+        }
+        val normalized = (emailCheck as EmailValidationResult.Valid).normalizedEmail
+        return runCatching {
+            val sb = client ?: error("Supabase is not configured in BuildConfig")
+            sb.auth.verifyEmailOtp(
+                type = OtpType.Email.SIGNUP,
+                email = normalized,
+                token = cleanCode,
+            )
+            Unit
+        }.fold(
+            onSuccess = {
+                _status.update { it.copy(lastError = null) }
+                Result.success(Unit)
+            },
+            onFailure = { err ->
+                val friendly = EmailSecurityValidator.friendlyAuthErrorMessage(err)
+                _status.update { it.copy(lastError = friendly) }
+                Result.failure(IllegalStateException(friendly, err))
+            },
+        )
+    }
+
+    suspend fun resendSignUpConfirmation(
+        email: String,
+        captchaToken: String? = null,
+    ): Result<Unit> {
+        val emailCheck = EmailSecurityValidator.validateEmailForAuth(email)
+        if (emailCheck is EmailValidationResult.Invalid) {
+            return Result.failure(IllegalArgumentException(emailCheck.reason))
+        }
+        if (config.turnstileEnabled && captchaToken.isNullOrBlank()) {
+            return Result.failure(IllegalStateException("Complete the Cloudflare Turnstile check to resend confirmation."))
+        }
+        val normalized = (emailCheck as EmailValidationResult.Valid).normalizedEmail
+        return runCatching {
+            val sb = client ?: error("Supabase is not configured in BuildConfig")
+            sb.auth.resendEmail(
+                type = OtpType.Email.SIGNUP,
+                email = normalized,
+                redirectUrl = "opencult://auth/callback",
+                captchaToken = captchaToken?.takeIf { it.isNotBlank() },
+            )
+            Unit
+        }.fold(
+            onSuccess = { Result.success(Unit) },
+            onFailure = { err ->
+                val friendly = EmailSecurityValidator.friendlyAuthErrorMessage(err)
+                _status.update { it.copy(lastError = friendly) }
+                Result.failure(IllegalStateException(friendly, err))
+            },
+        )
     }
 
     suspend fun signOut() {

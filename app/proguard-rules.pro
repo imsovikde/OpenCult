@@ -13,3 +13,8 @@
 # kotlinx-serialization-core and kotlinx-coroutines bundle consumer rules for @Serializable models.
 # Keep only runtime annotations/signatures needed by Supabase Ktor/Postgrest and Hilt reified adapters.
 -keepattributes *Annotation*,Signature,InnerClasses
+
+# Keep Android WebView Turnstile @JavascriptInterface bridge methods intact under R8 minification
+-keepclassmembers class org.opencult.scale.core.sync.TurnstileWebBridge$Bridge {
+    @android.webkit.JavascriptInterface <methods>;
+}

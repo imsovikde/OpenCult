@@ -17,5 +17,6 @@ object AppConfigModule {
     fun provideSupabaseConfig(): SupabaseConfig = SupabaseConfig(
         url = BuildConfig.SUPABASE_URL,
         anonKey = BuildConfig.SUPABASE_ANON_KEY,
+        turnstileSiteKey = BuildConfig.TURNSTILE_SITE_KEY,
     )
 }

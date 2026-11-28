@@ -9,9 +9,13 @@ import kotlinx.serialization.json.JsonElement
 data class SupabaseConfig(
     val url: String,
     val anonKey: String,
+    val turnstileSiteKey: String = "",
 ) {
     val isConfigured: Boolean
         get() = url.startsWith("https://") && anonKey.isNotBlank()
+
+    val turnstileEnabled: Boolean
+        get() = isConfigured && turnstileSiteKey.isNotBlank()
 }
 
 data class SyncStatusSnapshot(
