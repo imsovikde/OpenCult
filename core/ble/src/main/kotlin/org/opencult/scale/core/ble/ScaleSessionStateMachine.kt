@@ -54,6 +54,7 @@ class ScaleSessionStateMachine(
     private var sameWeightStreak = 0
     private var latestSingleFreqImp: Double? = null
     private var seqCounter = 0
+    private var pendingRunstarPart1: ByteArray? = null
 
     fun current(): ScaleSessionSnapshot = snapshot
 
@@ -82,10 +83,11 @@ class ScaleSessionStateMachine(
         bytes: ByteArray,
         timestampMs: Long = System.currentTimeMillis(),
     ): ScaleSessionSnapshot {
-        val parsed = ScaleFrameParser.parse(bytes, requestedTier, snapshot.deviceName)
+        val parsed = ScaleFrameParser.parse(bytes, requestedTier, snapshot.deviceName, characteristicUuid)
         val impedList = when (parsed) {
             is ParsedScaleFrame.DualFreqImpedancePacket -> parsed.scaledOhmChannels
             is ParsedScaleFrame.WeightFrame -> parsed.singleFreq50KhzOhm?.let { listOf(it) } ?: emptyList()
+            is ParsedScaleFrame.RunstarFinalFrame -> parsed.singleFreq50KhzOhm?.let { listOf(it) } ?: emptyList()
             else -> emptyList()
         }
         val captured = RawCapturedFrame(
@@ -111,6 +113,8 @@ class ScaleSessionStateMachine(
                 snapshot = snapshot.copy(dfPacketCount = snapshot.dfPacketCount + 1)
                 maybeComplete8ESession(forceAfterGrace = false)
             }
+            is ParsedScaleFrame.RunstarDeviceInfoFrame -> Unit
+            is ParsedScaleFrame.RunstarFinalFrame -> handleRunstarFinalFrame(parsed)
             is ParsedScaleFrame.UnknownFrame -> Unit
         }
         return snapshot
@@ -269,5 +273,91 @@ class ScaleSessionStateMachine(
         } else if (forceAfterGrace && snapshot.phase == WeighInPhase.FEET_ONLY_LOCKED) {
             finalizeFeetOnly(w, snapshot.heartRateBpm)
         }
+    }
+
+    private fun handleRunstarFinalFrame(frame: ParsedScaleFrame.RunstarFinalFrame) {
+        if (snapshot.completedReport != null) return
+        if (frame.isPart1OfTwoPart) {
+            pendingRunstarPart1 = frame.rawPartBytes
+            snapshot = snapshot.copy(
+                phase = WeighInPhase.HOLD_HANDLES_BIA,
+                liveWeightKg = frame.weightKg.takeIf { it >= 2.0 } ?: snapshot.liveWeightKg,
+                heartRateBpm = frame.heartRateBpm ?: snapshot.heartRateBpm,
+            )
+            return
+        }
+        if (frame.isPart2OfTwoPart) {
+            val part1 = pendingRunstarPart1 ?: return
+            pendingRunstarPart1 = null
+            val gramsPart1 = (((part1[5].toInt() and 0xFF) shl 16) or
+                ((part1[6].toInt() and 0xFF) shl 8) or
+                (part1[7].toInt() and 0xFF)) and 0x07FFFF
+            val weightKg = gramsPart1 / 1000.0
+            if (weightKg < 2.0) return
+            val hr = (part1[8].toInt() and 0xFF).takeIf { it in 35..220 } ?: snapshot.heartRateBpm
+
+            if (!frame.checksumValid || frame.rawPartBytes.isEmpty() || frame.rawPartBytes[0] != part1[0]) {
+                finalizeFeetOnly(weightKg, hr)
+                return
+            }
+            val combined = part1.copyOfRange(9, 19) + frame.rawPartBytes.copyOfRange(3, 13)
+            val imps = List(10) { idx ->
+                val hi = combined[idx * 2].toInt() and 0xFF
+                val lo = combined[idx * 2 + 1].toInt() and 0xFF
+                ((hi shl 8) or lo) / 10.0
+            }
+            val limbsValid = imps.size == 10 &&
+                imps[0] >= 1.0 &&
+                imps[5] >= 1.0 &&
+                listOf(1, 2, 3, 4, 6, 7, 8, 9).all { imps[it] >= 100.0 }
+            if (limbsValid) {
+                val dualFreq = DualFreqImpedance(
+                    lowRightArmOhm = imps[1],
+                    lowLeftArmOhm = imps[2],
+                    lowTrunkOhm = imps[0],
+                    lowRightLegOhm = imps[3],
+                    lowLeftLegOhm = imps[4],
+                    highRightArmOhm = imps[6],
+                    highLeftArmOhm = imps[7],
+                    highTrunkOhm = imps[5],
+                    highRightLegOhm = imps[8],
+                    highLeftLegOhm = imps[9],
+                )
+                val report = BodyMetricsEngine.calculate(
+                    anthropometry = anthropometry,
+                    requestedTier = ScaleTier.CULT_PRO_8E,
+                    weightKg = weightKg,
+                    heartRateBpm = hr,
+                    dualFreqImpedance = dualFreq,
+                )
+                snapshot = snapshot.copy(
+                    phase = WeighInPhase.LOCKED_COMPLETE,
+                    liveWeightKg = weightKg,
+                    heartRateBpm = hr,
+                    detectedTier = report.effectiveTier,
+                    completedReport = report,
+                )
+            } else {
+                finalizeFeetOnly(weightKg, hr)
+            }
+            return
+        }
+
+        if (frame.weightKg < 2.0) return
+        val hr = frame.heartRateBpm ?: snapshot.heartRateBpm
+        val report = BodyMetricsEngine.calculate(
+            anthropometry = anthropometry,
+            requestedTier = requestedTier,
+            weightKg = frame.weightKg,
+            heartRateBpm = hr,
+            singleFreq50KhzOhm = frame.singleFreq50KhzOhm,
+        )
+        snapshot = snapshot.copy(
+            phase = WeighInPhase.LOCKED_COMPLETE,
+            liveWeightKg = frame.weightKg,
+            heartRateBpm = hr,
+            detectedTier = report.effectiveTier,
+            completedReport = report,
+        )
     }
 }

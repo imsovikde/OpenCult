@@ -39,9 +39,8 @@ sealed interface ParsedScaleFrame {
         val historyIsoTimestamp: String?,
         val coalescedDuplicateDropped: Boolean,
         override val checksumValid: Boolean,
-    ) : ParsedScaleFrame {
-        override val packetTypeHex: String = "0xCF"
-    }
+        override val packetTypeHex: String = "0xCF",
+    ) : ParsedScaleFrame
 
     data class DualFreqImpedancePacket(
         val packetIndex: Int,
@@ -66,6 +65,47 @@ sealed interface ParsedScaleFrame {
         override val packetTypeHex: String = "0xDF"
     }
 
+    data class RunstarDeviceInfoFrame(
+        val seq: Int,
+        override val checksumValid: Boolean = true,
+        override val packetTypeHex: String = "0xA1",
+    ) : ParsedScaleFrame
+
+    data class RunstarFinalFrame(
+        val seq: Int,
+        val isPart1OfTwoPart: Boolean,
+        val isPart2OfTwoPart: Boolean,
+        val status: Int,
+        val weightKg: Double,
+        val heartRateBpm: Int?,
+        val singleFreq50KhzOhm: Double?,
+        val rawPartBytes: ByteArray,
+        override val checksumValid: Boolean,
+        override val packetTypeHex: String = "0xA3",
+    ) : ParsedScaleFrame {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (other !is RunstarFinalFrame) return false
+            return seq == other.seq &&
+                isPart1OfTwoPart == other.isPart1OfTwoPart &&
+                isPart2OfTwoPart == other.isPart2OfTwoPart &&
+                status == other.status &&
+                weightKg == other.weightKg &&
+                heartRateBpm == other.heartRateBpm &&
+                singleFreq50KhzOhm == other.singleFreq50KhzOhm &&
+                checksumValid == other.checksumValid &&
+                rawPartBytes.contentEquals(other.rawPartBytes)
+        }
+
+        override fun hashCode(): Int {
+            var res = seq
+            res = 31 * res + isPart1OfTwoPart.hashCode()
+            res = 31 * res + isPart2OfTwoPart.hashCode()
+            res = 31 * res + rawPartBytes.contentHashCode()
+            return res
+        }
+    }
+
     data class UnknownFrame(
         override val packetTypeHex: String,
         val payloadHex: String,
@@ -79,9 +119,16 @@ object ScaleFrameParser {
         bytes: ByteArray,
         expectedTier: ScaleTier = ScaleTier.CULT_PRO_8E,
         deviceName: String = "",
+        characteristicShortUuid: String = "",
     ): ParsedScaleFrame {
         if (bytes.isEmpty()) {
             return ParsedScaleFrame.UnknownFrame("0x00", "", checksumValid = false)
+        }
+        val shortUuid = characteristicShortUuid.lowercase(Locale.US)
+        if (shortUuid == CultBleConstants.CHAR_RUNSTAR_LIVE_SHORT ||
+            shortUuid == CultBleConstants.CHAR_RUNSTAR_RESULT_SHORT
+        ) {
+            return parseRunstarFfb0(bytes)
         }
         val opcode = bytes[0].toInt() and 0xFF
         return when (opcode) {
@@ -95,6 +142,97 @@ object ScaleFrameParser {
             )
         }
     }
+
+    /**
+     * Parses `0xFFB0` (`0xFFB2`/`0xFFB3`) 20-byte Runstar / Icomon scale frames
+     * (adapted from openScale GPL-3.0 `RunstarR6Handler`).
+     */
+    fun parseRunstarFfb0(bytes: ByteArray): ParsedScaleFrame {
+        if (bytes.size != 20) {
+            val head = String.format(Locale.US, "0x%02X", bytes[0].toInt() and 0xFF)
+            return ParsedScaleFrame.UnknownFrame(head, bytes.toHexLower(), checksumValid = false)
+        }
+        val partFlag = bytes[2].toInt() and 0xFF
+        val checksumOk = (bytes[19].toInt() and 0x1F) == CultBleConstants.runstarChecksum(bytes)
+        val seq = bytes[0].toInt() and 0xFF
+        if (partFlag == 0x01) {
+            return ParsedScaleFrame.RunstarFinalFrame(
+                seq = seq,
+                isPart1OfTwoPart = false,
+                isPart2OfTwoPart = true,
+                status = 0x00,
+                weightKg = 0.0,
+                heartRateBpm = null,
+                singleFreq50KhzOhm = null,
+                rawPartBytes = bytes.copyOf(),
+                checksumValid = checksumOk,
+                packetTypeHex = "0xA3",
+            )
+        }
+        if (partFlag != 0x00 || !checksumOk) {
+            val typeByte = bytes[3].toInt() and 0xFF
+            return ParsedScaleFrame.UnknownFrame(
+                packetTypeHex = String.format(Locale.US, "0x%02X", typeByte),
+                payloadHex = bytes.toHexLower(),
+                checksumValid = checksumOk,
+            )
+        }
+        val frameType = bytes[3].toInt() and 0xFF
+        return when (frameType) {
+            0xA1 -> ParsedScaleFrame.RunstarDeviceInfoFrame(seq = seq, checksumValid = true)
+            0xA2 -> {
+                val state = bytes[4].toInt() and 0xFF
+                val grams = u24be(bytes, 6) and 0x07FFFF
+                ParsedScaleFrame.WeightFrame(
+                    weightKg = grams / 1000.0,
+                    statusByte = state,
+                    isSettling = state == 0x01 || state == 0x02,
+                    isSettledWeightOnly = state == 0x04,
+                    isHandleReading = false,
+                    isHandleComplete = false,
+                    isBf01Locked = false,
+                    heartRateBpm = null,
+                    singleFreq50KhzOhm = null,
+                    isHistory = false,
+                    historyIsoTimestamp = null,
+                    coalescedDuplicateDropped = false,
+                    checksumValid = true,
+                    packetTypeHex = "0xA2",
+                )
+            }
+            0xA3 -> {
+                val lenByte = bytes[1].toInt() and 0xFF
+                val isTwoPart1 = lenByte > 0x10
+                val status = bytes[4].toInt() and 0xFF
+                val grams = u24be(bytes, 5) and 0x07FFFF
+                val hr = (bytes[8].toInt() and 0xFF).takeIf { it in 35..220 }
+                val imp = (((bytes[9].toInt() and 0xFF) shl 8) or (bytes[10].toInt() and 0xFF))
+                val impOhm = if (!isTwoPart1 && imp in 200..1200) imp.toDouble() else null
+                ParsedScaleFrame.RunstarFinalFrame(
+                    seq = seq,
+                    isPart1OfTwoPart = isTwoPart1,
+                    isPart2OfTwoPart = false,
+                    status = status,
+                    weightKg = grams / 1000.0,
+                    heartRateBpm = hr,
+                    singleFreq50KhzOhm = impOhm,
+                    rawPartBytes = bytes.copyOf(),
+                    checksumValid = true,
+                    packetTypeHex = "0xA3",
+                )
+            }
+            else -> ParsedScaleFrame.UnknownFrame(
+                packetTypeHex = String.format(Locale.US, "0x%02X", frameType),
+                payloadHex = bytes.toHexLower(),
+                checksumValid = true,
+            )
+        }
+    }
+
+    private fun u24be(bytes: ByteArray, offset: Int): Int =
+        ((bytes[offset].toInt() and 0xFF) shl 16) or
+            ((bytes[offset + 1].toInt() and 0xFF) shl 8) or
+            (bytes[offset + 2].toInt() and 0xFF)
 
     /**
      * Parses `0xCF` weight/status/history frames across both `CS-BF01` (`bytes[1]` HR 35..220,
