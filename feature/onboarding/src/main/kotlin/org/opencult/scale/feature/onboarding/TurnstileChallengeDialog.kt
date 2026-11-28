@@ -78,34 +78,35 @@ fun TurnstileChallengeDialog(
                         .fillMaxWidth()
                         .height(120.dp),
                     factory = { ctx ->
-                        WebView(ctx).apply {
-                            settings.allowContentAccess = false
-                            settings.allowFileAccess = false
-                            settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
-                            settings.setSupportMultipleWindows(false)
-                            layoutParams = ViewGroup.LayoutParams(
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                            )
-                            TurnstileWebBridge.configureAndLoad(
-                                webView = this,
-                                siteKey = siteKey,
-                                darkTheme = colors.isDark,
-                                onToken = { tok ->
-                                    mainHandler.post { onTokenVerified(tok) }
-                                },
-                                onError = { code ->
-                                    mainHandler.post {
-                                        statusMessage = "Verification failed ($code). Check internet connection and retry."
-                                    }
-                                },
-                                onExpired = {
-                                    mainHandler.post {
-                                        statusMessage = "Check expired. Complete verification again."
-                                    }
-                                },
-                            )
-                        }
+                        val webView = WebView(ctx)
+                        val webSettings: WebSettings = webView.settings
+                        webSettings.setAllowContentAccess(false)
+                        webSettings.setAllowFileAccess(false)
+                        webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW)
+                        webSettings.setSupportMultipleWindows(false)
+                        webView.layoutParams = ViewGroup.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                        )
+                        TurnstileWebBridge.configureAndLoad(
+                            webView = webView,
+                            siteKey = siteKey,
+                            darkTheme = colors.isDark,
+                            onToken = { tok ->
+                                mainHandler.post { onTokenVerified(tok) }
+                            },
+                            onError = { code ->
+                                mainHandler.post {
+                                    statusMessage = "Verification failed ($code). Check internet connection and retry."
+                                }
+                            },
+                            onExpired = {
+                                mainHandler.post {
+                                    statusMessage = "Check expired. Complete verification again."
+                                }
+                            },
+                        )
+                        webView
                     },
                     onRelease = { webView ->
                         webView.stopLoading()

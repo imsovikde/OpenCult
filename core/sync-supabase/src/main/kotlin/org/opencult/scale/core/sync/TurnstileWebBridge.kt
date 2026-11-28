@@ -117,14 +117,13 @@ object TurnstileWebBridge {
         onError: (String) -> Unit,
         onExpired: () -> Unit,
     ) {
-        webView.settings.apply {
-            javaScriptEnabled = true
-            domStorageEnabled = true
-            allowFileAccess = false
-            allowContentAccess = false
-            mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
-            setSupportMultipleWindows(false)
-        }
+        val webSettings: WebSettings = webView.settings
+        webSettings.setJavaScriptEnabled(true)
+        webSettings.setDomStorageEnabled(true)
+        webSettings.setAllowFileAccess(false)
+        webSettings.setAllowContentAccess(false)
+        webSettings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW)
+        webSettings.setSupportMultipleWindows(false)
         webView.setBackgroundColor(android.graphics.Color.TRANSPARENT)
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
