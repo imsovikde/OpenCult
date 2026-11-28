@@ -2,22 +2,32 @@ package org.opencult.scale.core.sync
 
 import android.annotation.SuppressLint
 import android.net.Uri
-import android.webkit.JavascriptInterface
 import android.webkit.WebResourceRequest
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import androidx.annotation.Keep
+import androidx.core.net.toUri
+
+sealed interface TurnstileNavigationDirective {
+    data class Token(val token: String) : TurnstileNavigationDirective
+    data class Error(val code: String) : TurnstileNavigationDirective
+    object Expired : TurnstileNavigationDirective
+    object AllowSubresource : TurnstileNavigationDirective
+    object Block : TurnstileNavigationDirective
+}
 
 /**
  * Builds and binds the hardened Cloudflare Turnstile HTML page for Android WebView.
- * Enforces explicit origin (`https://auth.opencult.local/`) with file/content access disabled
- * and `@Keep`-protected `@JavascriptInterface` callbacks under R8 minification.
+ * Enforces explicit origin (`https://auth.opencult.local/`) with file/content access disabled,
+ * zero `@JavascriptInterface` reflection bridges, and allowlisted HTTPS navigation interception.
  */
 object TurnstileWebBridge {
 
     const val BASE_ORIGIN = "https://auth.opencult.local/"
-    const val JS_BRIDGE_NAME = "OpenCultTurnstile"
+    const val BASE_HOST = "auth.opencult.local"
+    const val CALLBACK_PATH = "/turnstile-callback"
+    const val ERROR_PATH = "/turnstile-error"
+    const val EXPIRED_PATH = "/turnstile-expired"
 
     fun buildChallengeHtml(siteKey: String, darkTheme: Boolean = false): String {
         val safeKey = siteKey.filter { it.isLetterOrDigit() || it == '-' || it == '_' }
@@ -55,13 +65,15 @@ object TurnstileWebBridge {
                     sitekey: '$safeKey',
                     theme: '$theme',
                     callback: function(token) {
-                      if (window.$JS_BRIDGE_NAME) window.$JS_BRIDGE_NAME.onToken(token);
+                      if (token) {
+                        window.location.href = '${BASE_ORIGIN.trimEnd('/')}$CALLBACK_PATH?token=' + encodeURIComponent(token);
+                      }
                     },
                     'error-callback': function(code) {
-                      if (window.$JS_BRIDGE_NAME) window.$JS_BRIDGE_NAME.onError(String(code || 'error'));
+                      window.location.href = '${BASE_ORIGIN.trimEnd('/')}$ERROR_PATH?code=' + encodeURIComponent(String(code || 'error'));
                     },
                     'expired-callback': function() {
-                      if (window.$JS_BRIDGE_NAME) window.$JS_BRIDGE_NAME.onExpired();
+                      window.location.href = '${BASE_ORIGIN.trimEnd('/')}$EXPIRED_PATH';
                     }
                   });
                 })();
@@ -70,6 +82,31 @@ object TurnstileWebBridge {
             </html>
         """.trimIndent()
     }
+
+    fun parseNavigationDirective(uri: Uri): TurnstileNavigationDirective {
+        if (!uri.scheme.equals("https", ignoreCase = true)) {
+            return TurnstileNavigationDirective.Block
+        }
+        val host = uri.host.orEmpty().lowercase()
+        return when (host) {
+            BASE_HOST -> when (uri.path) {
+                CALLBACK_PATH -> {
+                    val tok = uri.getQueryParameter("token").orEmpty()
+                    if (tok.isNotBlank()) TurnstileNavigationDirective.Token(tok) else TurnstileNavigationDirective.Block
+                }
+                ERROR_PATH -> TurnstileNavigationDirective.Error(
+                    uri.getQueryParameter("code").orEmpty().ifBlank { "error" },
+                )
+                EXPIRED_PATH -> TurnstileNavigationDirective.Expired
+                else -> TurnstileNavigationDirective.AllowSubresource
+            }
+            "challenges.cloudflare.com" -> TurnstileNavigationDirective.AllowSubresource
+            else -> TurnstileNavigationDirective.Block
+        }
+    }
+
+    fun parseNavigationUrl(rawUrl: String): TurnstileNavigationDirective =
+        runCatching { parseNavigationDirective(rawUrl.toUri()) }.getOrDefault(TurnstileNavigationDirective.Block)
 
     @SuppressLint("SetJavaScriptEnabled")
     fun configureAndLoad(
@@ -92,11 +129,24 @@ object TurnstileWebBridge {
         webView.webViewClient = object : WebViewClient() {
             override fun shouldOverrideUrlLoading(view: WebView?, request: WebResourceRequest?): Boolean {
                 val uri: Uri = request?.url ?: return true
-                val host = uri.host.orEmpty()
-                return !(uri.scheme == "https" && (host == "challenges.cloudflare.com" || host == "auth.opencult.local"))
+                return when (val directive = parseNavigationDirective(uri)) {
+                    is TurnstileNavigationDirective.Token -> {
+                        onToken(directive.token)
+                        true
+                    }
+                    is TurnstileNavigationDirective.Error -> {
+                        onError(directive.code)
+                        true
+                    }
+                    TurnstileNavigationDirective.Expired -> {
+                        onExpired()
+                        true
+                    }
+                    TurnstileNavigationDirective.AllowSubresource -> false
+                    TurnstileNavigationDirective.Block -> true
+                }
             }
         }
-        webView.addJavascriptInterface(Bridge(onToken, onError, onExpired), JS_BRIDGE_NAME)
         webView.loadDataWithBaseURL(
             BASE_ORIGIN,
             buildChallengeHtml(siteKey = siteKey, darkTheme = darkTheme),
@@ -104,27 +154,5 @@ object TurnstileWebBridge {
             "UTF-8",
             null,
         )
-    }
-
-    @Keep
-    class Bridge(
-        private val tokenCallback: (String) -> Unit,
-        private val errorCallback: (String) -> Unit,
-        private val expiredCallback: () -> Unit,
-    ) {
-        @JavascriptInterface
-        fun onToken(token: String) {
-            if (token.isNotBlank()) tokenCallback(token)
-        }
-
-        @JavascriptInterface
-        fun onError(code: String) {
-            errorCallback(code)
-        }
-
-        @JavascriptInterface
-        fun onExpired() {
-            expiredCallback()
-        }
     }
 }

@@ -8,7 +8,7 @@ sealed interface EmailValidationResult {
 }
 
 sealed interface PasswordValidationResult {
-    data object Valid : PasswordValidationResult
+    object Valid : PasswordValidationResult
     data class Invalid(val reason: String) : PasswordValidationResult
 }
 

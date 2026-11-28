@@ -165,12 +165,28 @@ class SupabaseSyncTest {
     }
 
     @Test
-    fun turnstile_web_bridge_escapes_site_key_and_includes_csp_header() {
+    fun turnstile_web_bridge_escapes_site_key_and_enforces_url_allowlist() {
         val html = TurnstileWebBridge.buildChallengeHtml("0x4AAA\"<script>alert(1)</script>", darkTheme = true)
         assertThat(html).contains("https://challenges.cloudflare.com/turnstile/v0/api.js")
         assertThat(html).contains("sitekey: '0x4AAAscriptalert1script'")
         assertThat(html).contains("theme: 'dark'")
         assertThat(html).contains("Content-Security-Policy")
+        assertThat(html).doesNotContain("OpenCultTurnstile")
+
+        assertThat(TurnstileWebBridge.parseNavigationUrl("https://auth.opencult.local/turnstile-callback?token=cf-tok-123"))
+            .isEqualTo(TurnstileNavigationDirective.Token("cf-tok-123"))
+        assertThat(TurnstileWebBridge.parseNavigationUrl("https://auth.opencult.local/turnstile-error?code=600"))
+            .isEqualTo(TurnstileNavigationDirective.Error("600"))
+        assertThat(TurnstileWebBridge.parseNavigationUrl("https://auth.opencult.local/turnstile-expired"))
+            .isEqualTo(TurnstileNavigationDirective.Expired)
+        assertThat(TurnstileWebBridge.parseNavigationUrl("https://challenges.cloudflare.com/cdn-cgi/challenge-platform/h/b"))
+            .isEqualTo(TurnstileNavigationDirective.AllowSubresource)
+        assertThat(TurnstileWebBridge.parseNavigationUrl("content://com.android.contacts/contacts"))
+            .isEqualTo(TurnstileNavigationDirective.Block)
+        assertThat(TurnstileWebBridge.parseNavigationUrl("http://challenges.cloudflare.com/insecure"))
+            .isEqualTo(TurnstileNavigationDirective.Block)
+        assertThat(TurnstileWebBridge.parseNavigationUrl("https://evil.example.org/phish"))
+            .isEqualTo(TurnstileNavigationDirective.Block)
     }
 
     @Test

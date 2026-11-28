@@ -90,9 +90,13 @@ sealed interface ParsedScaleFrame {
                 isPart1OfTwoPart == other.isPart1OfTwoPart &&
                 isPart2OfTwoPart == other.isPart2OfTwoPart &&
                 status == other.status &&
-                weightKg == other.weightKg &&
-                heartRateBpm == other.heartRateBpm &&
-                singleFreq50KhzOhm == other.singleFreq50KhzOhm &&
+                weightKg.compareTo(other.weightKg) == 0 &&
+                ((heartRateBpm == null && other.heartRateBpm == null) ||
+                    (heartRateBpm != null && other.heartRateBpm != null &&
+                        heartRateBpm.toInt() == other.heartRateBpm.toInt())) &&
+                ((singleFreq50KhzOhm == null && other.singleFreq50KhzOhm == null) ||
+                    (singleFreq50KhzOhm != null && other.singleFreq50KhzOhm != null &&
+                        java.lang.Double.compare(singleFreq50KhzOhm, other.singleFreq50KhzOhm) == 0)) &&
                 checksumValid == other.checksumValid &&
                 rawPartBytes.contentEquals(other.rawPartBytes)
         }

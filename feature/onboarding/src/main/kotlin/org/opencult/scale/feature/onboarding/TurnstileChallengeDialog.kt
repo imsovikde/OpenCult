@@ -3,6 +3,7 @@ package org.opencult.scale.feature.onboarding
 import android.os.Handler
 import android.os.Looper
 import android.view.ViewGroup
+import android.webkit.WebSettings
 import android.webkit.WebView
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -78,6 +79,10 @@ fun TurnstileChallengeDialog(
                         .height(120.dp),
                     factory = { ctx ->
                         WebView(ctx).apply {
+                            settings.allowContentAccess = false
+                            settings.allowFileAccess = false
+                            settings.mixedContentMode = WebSettings.MIXED_CONTENT_NEVER_ALLOW
+                            settings.setSupportMultipleWindows(false)
                             layoutParams = ViewGroup.LayoutParams(
                                 ViewGroup.LayoutParams.MATCH_PARENT,
                                 ViewGroup.LayoutParams.MATCH_PARENT,
