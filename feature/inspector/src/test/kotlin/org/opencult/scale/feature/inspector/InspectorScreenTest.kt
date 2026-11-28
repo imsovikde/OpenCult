@@ -22,5 +22,6 @@ class InspectorScreenTest {
         assertThat(withAll).contains(HealthConnectGateway.OPT_IN_RESTING_HR_PERMISSION)
         assertThat(withAll).contains(HealthConnectGateway.OPT_IN_BACKGROUND_READ_PERMISSION)
         assertThat(InspectorUiState().syncStatus.backendConfigured).isFalse()
+        assertThat(state.bleSession.capturedFrames).isEmpty()
     }
 }

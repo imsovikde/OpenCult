@@ -138,17 +138,28 @@ fun OpenCultTextField(
     placeholder: String = "",
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     visualTransformation: VisualTransformation = VisualTransformation.None,
+    errorText: String? = null,
+    trailingContent: (@Composable () -> Unit)? = null,
 ) {
     val colors = OpenCultTheme.colors
     val interactionSource = remember { MutableInteractionSource() }
     val focused by interactionSource.collectIsFocusedAsState()
-    val borderColor = if (focused) colors.brandCobalt else colors.borderSubtle
+    val hasError = !errorText.isNullOrBlank()
+    val borderColor = when {
+        hasError -> colors.coralAlert
+        focused -> colors.brandCobalt
+        else -> colors.borderSubtle
+    }
 
     Column(modifier = modifier) {
         Text(
             text = label,
             style = OpenCultTheme.typography.microLabel,
-            color = if (focused) colors.brandCobalt else colors.textSecondary,
+            color = when {
+                hasError -> colors.coralAlert
+                focused -> colors.brandCobalt
+                else -> colors.textSecondary
+            },
         )
         Spacer(Modifier.height(6.dp))
         BasicTextField(
@@ -161,29 +172,45 @@ fun OpenCultTextField(
             visualTransformation = visualTransformation,
             interactionSource = interactionSource,
             decorationBox = { innerTextField ->
-                Box(
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .defaultMinSize(minHeight = 50.dp)
                         .clip(OpenCultTheme.shapes.inputSquircle)
                         .background(colors.subtlePillSurface, OpenCultTheme.shapes.inputSquircle)
                         .border(1.5.dp, borderColor, OpenCultTheme.shapes.inputSquircle)
-                        .padding(horizontal = 14.dp, vertical = 12.dp),
-                    contentAlignment = Alignment.CenterStart,
+                        .padding(start = 14.dp, end = if (trailingContent != null) 4.dp else 14.dp),
+                    verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    if (value.isEmpty() && placeholder.isNotEmpty()) {
-                        Text(
-                            text = placeholder,
-                            style = OpenCultTheme.typography.body,
-                            color = colors.textMuted,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
-                        )
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(vertical = 12.dp),
+                        contentAlignment = Alignment.CenterStart,
+                    ) {
+                        if (value.isEmpty() && placeholder.isNotEmpty()) {
+                            Text(
+                                text = placeholder,
+                                style = OpenCultTheme.typography.body,
+                                color = colors.textMuted,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                        innerTextField()
                     }
-                    innerTextField()
+                    trailingContent?.invoke()
                 }
             },
         )
+        if (hasError) {
+            Spacer(Modifier.height(4.dp))
+            Text(
+                text = errorText!!,
+                style = OpenCultTheme.typography.microLabel,
+                color = colors.coralAlert,
+            )
+        }
     }
 }
 

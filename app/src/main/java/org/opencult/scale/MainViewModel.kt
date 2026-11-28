@@ -18,6 +18,7 @@ import kotlinx.coroutines.launch
 import org.opencult.scale.core.audio.OpenCultSoundEngine
 import org.opencult.scale.core.ble.CultBleController
 import org.opencult.scale.core.designsystem.theme.OpenCultThemeMode
+import org.opencult.scale.core.healthconnect.HealthConnectAvailability
 import org.opencult.scale.core.healthconnect.HealthConnectGateway
 import org.opencult.scale.core.sync.ActiveMemberSession
 import org.opencult.scale.core.sync.SecureVault
@@ -44,8 +45,14 @@ class MainViewModel @Inject constructor(
     private val _bleGranted = MutableStateFlow(checkBleGranted())
     val bleGranted: StateFlow<Boolean> = _bleGranted.asStateFlow()
 
+    private val _bluetoothEnabled = MutableStateFlow(false)
+    val bluetoothEnabled: StateFlow<Boolean> = _bluetoothEnabled.asStateFlow()
+
     private val _hcGrantedCount = MutableStateFlow(0)
     val hcGrantedCount: StateFlow<Int> = _hcGrantedCount.asStateFlow()
+
+    private val _hcAvailability = MutableStateFlow(healthConnectGateway.availability())
+    val hcAvailability: StateFlow<HealthConnectAvailability> = _hcAvailability.asStateFlow()
 
     val appVersionLabel: String = "v${BuildConfig.VERSION_NAME} (build ${BuildConfig.VERSION_CODE})"
 
@@ -66,6 +73,9 @@ class MainViewModel @Inject constructor(
     fun refreshRuntimePermissions() {
         _bleGranted.value = checkBleGranted()
         bleController.refreshPermissionAndAdapterState()
+        _bluetoothEnabled.value = bleController.state.value.isBluetoothEnabled
+        val avail = healthConnectGateway.availability()
+        _hcAvailability.value = avail
         viewModelScope.launch {
             _hcGrantedCount.value = runCatching {
                 healthConnectGateway.getGrantedPermissions().size

@@ -1,5 +1,6 @@
 package org.opencult.scale.feature.inspector
 
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -44,8 +45,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import org.opencult.scale.core.bia.ScaleTier
+import org.opencult.scale.core.ble.CultBleConstants
+import org.opencult.scale.core.ble.CultBleController
+import org.opencult.scale.core.ble.ScaleSessionSnapshot
+import org.opencult.scale.core.ble.hexToByteArray
 import org.opencult.scale.core.database.OpenCultDatabase
 import org.opencult.scale.core.database.OpenCultRepository
+import org.opencult.scale.core.database.RawPacketDraft
 import org.opencult.scale.core.database.entity.HealthConnectSyncLedgerEntity
 import org.opencult.scale.core.database.entity.RawBlePacketEntity
 import org.opencult.scale.core.designsystem.components.OpenCultBentoCard
@@ -78,10 +85,12 @@ data class InspectorUiState(
     val syncStatus: SyncStatusSnapshot = SyncStatusSnapshot(),
     val restingHrOptIn: Boolean = false,
     val backgroundHcRead: Boolean = false,
+    val bleSession: ScaleSessionSnapshot = ScaleSessionSnapshot(),
 )
 
 @HiltViewModel
 class InspectorViewModel @Inject constructor(
+    private val bleController: CultBleController,
     private val repository: OpenCultRepository,
     private val db: OpenCultDatabase,
     private val healthConnectGateway: HealthConnectGateway,
@@ -95,12 +104,14 @@ class InspectorViewModel @Inject constructor(
         repository.observeHealthConnectLedger(40),
         repository.observePendingOutboxCount(),
         syncEngine.status,
-    ) { packets, ledger, outbox, sync ->
+        bleController.state,
+    ) { packets, ledger, outbox, sync, ble ->
         InspectorUiState(
             packets = packets,
             hcLedger = ledger,
             outboxCount = outbox,
             syncStatus = sync,
+            bleSession = ble.session,
         )
     }.combine(activeMemberSession.restingHrOptInEnabled) { state, rhr ->
         state.copy(restingHrOptIn = rhr)
@@ -130,7 +141,7 @@ class InspectorViewModel @Inject constructor(
     suspend fun signIn(email: String, pass: String): Result<Unit> =
         syncEngine.signInWithEmail(email, pass)
 
-    suspend fun signUp(email: String, pass: String): Result<Unit> =
+    suspend fun signUp(email: String, pass: String): Result<org.opencult.scale.core.sync.AuthActionOutcome> =
         syncEngine.signUpWithEmail(email, pass)
 
     suspend fun signOut() {
@@ -163,6 +174,132 @@ class InspectorViewModel @Inject constructor(
             ?: return "No household member marked Primary HC User."
         val written = healthConnectGateway.backfillRecentMeasurements(primary.id, daysBack = 90)
         return "Synced $written measurements for ${primary.displayName} (idempotent)."
+    }
+
+    /** QA-only deterministic byte fixture replay relocated cleanly from the live Weigh-In screen. */
+    fun replaySimulatedFixture(tier: ScaleTier) {
+        viewModelScope.launch {
+            val accountId = syncEngine.currentAccountIdOrGuest()
+            val profiles = db.householdProfileDao().getActiveProfiles()
+            val activeId = activeMemberSession.activeProfileId.value
+            val chosen = profiles.firstOrNull { it.id == activeId }
+                ?: profiles.firstOrNull()
+                ?: repository.ensureDefaultProfileIfEmpty(accountId)
+            val anthro = with(repository) { chosen.toAnthropometry() }
+
+            val frames = when (tier) {
+                ScaleTier.CULT_PRO_8E -> {
+                    val settling = buildCfFrame(74.8, 0, 0x01)
+                    val handle = buildCfFrame(74.8, 68, 0x08)
+                    val be0 = "be 00 02 0c 29 0c 0c 01 75 09 02 0a ec".hexToByteArray()
+                    val be1 = "be 01 74 0a c3 0a f5 00 8f 08 f7 08 85".hexToByteArray()
+                    val dfFrames = (1..4).map { seq ->
+                        ByteArray(17) { idx ->
+                            when (idx) {
+                                0 -> 0xDF.toByte()
+                                2 -> seq.toByte()
+                                3 -> 0x04
+                                else -> (idx * 5 + seq).toByte()
+                            }
+                        }.also { fixXor(it) }
+                    }
+                    buildList {
+                        add(CultBleConstants.CHAR_NOTIFY_SHORT to settling)
+                        add(CultBleConstants.CHAR_NOTIFY_SHORT to handle)
+                        add(CultBleConstants.CHAR_NOTIFY_SHORT to be0)
+                        add(CultBleConstants.CHAR_NOTIFY_SHORT to be1)
+                        dfFrames.forEach { df -> add(CultBleConstants.CHAR_NOTIFY_SHORT to df) }
+                    }
+                }
+                ScaleTier.CULT_BF01_4E -> {
+                    val bf01Body = "CF 3C C0 4C 1D F4 01 00 00 00 97".hexToByteArray()
+                    listOf(
+                        CultBleConstants.CHAR_NOTIFY_SHORT to bf01Body,
+                        CultBleConstants.CHAR_NOTIFY_SHORT to bf01Body,
+                        CultBleConstants.CHAR_NOTIFY_SHORT to bf01Body,
+                    )
+                }
+                else -> {
+                    val settling = buildCfFrame(71.4, 0, 0x01)
+                    val feetOnly = buildCfFrame(71.4, 70, 0x00)
+                    listOf(
+                        CultBleConstants.CHAR_NOTIFY_SHORT to settling,
+                        CultBleConstants.CHAR_NOTIFY_SHORT to feetOnly,
+                    )
+                }
+            }
+            val simName = when (tier) {
+                ScaleTier.CULT_PRO_8E -> "Simulated Cult Pro (8E)"
+                ScaleTier.CULT_BF01_4E -> "Simulated CS-BF01"
+                else -> "Simulated Cult Pro (Feet-Only)"
+            }
+            bleController.replayFixtureSequence(
+                anthropometry = anthro,
+                tier = tier,
+                deviceName = simName,
+                deviceMac = "SIM-00:11:22:33:44:55",
+                frames = frames,
+            )
+        }
+    }
+
+    suspend fun commitSimulatedReplayToDb(): String {
+        val snap = bleController.state.value.session
+        val report = snap.completedReport ?: return "Run a simulated fixture until locked first."
+        val accountId = syncEngine.currentAccountIdOrGuest()
+        val profiles = db.householdProfileDao().getActiveProfiles()
+        val activeId = activeMemberSession.activeProfileId.value
+        val target = profiles.firstOrNull { it.id == activeId }
+            ?: profiles.firstOrNull()
+            ?: repository.ensureDefaultProfileIfEmpty(accountId)
+
+        val drafts = snap.capturedFrames.map {
+            RawPacketDraft(
+                seqNo = it.seqNo,
+                characteristicUuid = it.characteristicUuid,
+                packetTypeHex = it.packetTypeHex,
+                payloadHex = it.payloadHex,
+                checksumValid = it.checksumValid,
+                decodedImpedancesOhm = it.decodedImpedancesOhm,
+                capturedAtMs = it.capturedAtEpochMs,
+            )
+        }
+        val measurement = repository.commitMeasurementAtomic(
+            accountId = accountId,
+            targetProfileId = target.id,
+            assignmentState = "confirmed",
+            scaleDeviceId = null,
+            report = report,
+            measuredAtMs = System.currentTimeMillis(),
+            imp50KhzOhm = report.z50KhzOhm,
+            impHighOhm = report.zHighKhzOhm,
+            rawPackets = drafts,
+            notes = "Simulated QA Fixture",
+        )
+        bleController.disconnectAndReset()
+        return "Saved ${report.weightKg} kg fixture (${drafts.size} raw frames) to ${target.displayName} (ID ${measurement.id.take(8)})."
+    }
+
+    private fun buildCfFrame(weightKg: Double, b1: Int, status: Int): ByteArray {
+        val rawW = (weightKg * 100.0).toInt()
+        val arr = byteArrayOf(
+            0xCF.toByte(),
+            b1.toByte(),
+            0x00,
+            (rawW and 0xFF).toByte(),
+            ((rawW shr 8) and 0xFF).toByte(),
+            0x00, 0x00, 0x00, 0x00,
+            status.toByte(),
+            0x00,
+        )
+        fixXor(arr)
+        return arr
+    }
+
+    private fun fixXor(arr: ByteArray) {
+        var acc = 0
+        for (i in 0 until arr.lastIndex) acc = acc xor (arr[i].toInt() and 0xFF)
+        arr[arr.lastIndex] = acc.toByte()
     }
 }
 
@@ -237,6 +374,76 @@ fun InspectorScreen(
 
         when (tab) {
             InspectorTab.PACKETS -> {
+                var qaReplayExpanded by remember { mutableStateOf(false) }
+                OpenCultBentoCard(modifier = Modifier.fillMaxWidth()) {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .openCultMicroPress(role = Role.Button) {
+                                qaReplayExpanded = !qaReplayExpanded
+                            },
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically,
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = "QA: Simulated Hardware Fixture Replay",
+                                style = OpenCultTheme.typography.sectionTitle,
+                                color = colors.textPrimary,
+                            )
+                            Text(
+                                text = "Replay recorded 0xCF / 0xBE / 0xDF fixtures here without cluttering live scale scans.",
+                                style = OpenCultTheme.typography.microLabel,
+                                color = colors.textSecondary,
+                            )
+                        }
+                        OpenCultStatusChip(label = if (qaReplayExpanded) "Hide" else "Open")
+                    }
+
+                    AnimatedVisibility(visible = qaReplayExpanded) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Spacer(Modifier.height(10.dp))
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            ) {
+                                OpenCultSecondaryButton(
+                                    text = "Sim Pro 8E",
+                                    onClick = { viewModel.replaySimulatedFixture(ScaleTier.CULT_PRO_8E) },
+                                    modifier = Modifier.weight(1f),
+                                )
+                                OpenCultSecondaryButton(
+                                    text = "Sim CS-BF01",
+                                    onClick = { viewModel.replaySimulatedFixture(ScaleTier.CULT_BF01_4E) },
+                                    modifier = Modifier.weight(1f),
+                                )
+                            }
+                            OpenCultSecondaryButton(
+                                text = "Sim Feet-Only (No Handles)",
+                                onClick = { viewModel.replaySimulatedFixture(ScaleTier.CULT_PRO_FEET_ONLY) },
+                                modifier = Modifier.fillMaxWidth(),
+                            )
+                            val bleSnap = state.bleSession
+                            if (bleSnap.deviceMac.startsWith("SIM-")) {
+                                OpenCultStatusChip(
+                                    label = "Replay ${bleSnap.phase.name}  |  ${bleSnap.capturedFrames.size} frames",
+                                )
+                                if (bleSnap.completedReport != null) {
+                                    OpenCultPrimaryButton(
+                                        text = "Commit Fixture to Database",
+                                        onClick = {
+                                            scope.launch {
+                                                feedback = viewModel.commitSimulatedReplayToDb()
+                                            }
+                                        },
+                                        modifier = Modifier.fillMaxWidth(),
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
                 if (state.packets.isEmpty()) {
                     OpenCultBentoCard(modifier = Modifier.fillMaxWidth()) {
                         Text(
@@ -429,7 +636,14 @@ fun InspectorScreen(
                                 onClick = {
                                     scope.launch {
                                         viewModel.signUp(email, password)
-                                            .onSuccess { feedback = "Account created; confirm email if verification enabled." }
+                                            .onSuccess { outcome ->
+                                                feedback = when (outcome) {
+                                                    is org.opencult.scale.core.sync.AuthActionOutcome.SignedIn ->
+                                                        "Account created and signed in."
+                                                    is org.opencult.scale.core.sync.AuthActionOutcome.VerificationEmailSent ->
+                                                        "Confirmation email sent to ${outcome.email}."
+                                                }
+                                            }
                                             .onFailure { feedback = it.message }
                                     }
                                 },

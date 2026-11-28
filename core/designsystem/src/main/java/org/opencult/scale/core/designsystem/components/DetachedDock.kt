@@ -1,10 +1,13 @@
 package org.opencult.scale.core.designsystem.components
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -25,11 +28,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.min
 import org.opencult.scale.core.designsystem.theme.OpenCultMotion
 import org.opencult.scale.core.designsystem.theme.OpenCultTheme
 
@@ -86,7 +92,7 @@ fun DetachedObsidianDock(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Row(
+            BoxWithConstraints(
                 modifier = Modifier
                     .weight(1f)
                     .height(spacing.dockHeight)
@@ -98,17 +104,45 @@ fun DetachedObsidianDock(
                     )
                     .clip(OpenCultTheme.shapes.dockPill)
                     .background(colors.dockBackground, OpenCultTheme.shapes.dockPill)
-                    .padding(horizontal = 10.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
-                verticalAlignment = Alignment.CenterVertically,
+                    .padding(horizontal = 4.dp),
+                contentAlignment = Alignment.CenterStart,
             ) {
-                OpenCultDestination.entries.forEach { destination ->
-                    DockNavItem(
-                        destination = destination,
-                        selected = selectedDestination == destination,
-                        reducedMotion = reducedMotion,
-                        onClick = { onSelectDestination(destination) },
-                    )
+                val destinations = OpenCultDestination.entries
+                val selectedIndex = destinations.indexOf(selectedDestination).coerceAtLeast(0)
+                val slotWidth = maxWidth / destinations.size
+                val pillWidth = min(slotWidth - 2.dp, 54.dp)
+                val targetX = slotWidth * selectedIndex + (slotWidth - pillWidth) / 2f
+                val animatedX by animateDpAsState(
+                    targetValue = targetX,
+                    animationSpec = OpenCultMotion.spatialDefault(reducedMotion),
+                    label = "dock_active_pill_x",
+                )
+                val density = LocalDensity.current
+
+                // Single GPU-accelerated sliding white active pill indicator
+                Box(
+                    modifier = Modifier
+                        .graphicsLayer {
+                            translationX = with(density) { animatedX.toPx() }
+                        }
+                        .size(width = pillWidth, height = 48.dp)
+                        .clip(OpenCultTheme.shapes.pill)
+                        .background(colors.dockActivePill, OpenCultTheme.shapes.pill),
+                )
+
+                Row(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    destinations.forEach { destination ->
+                        DockNavItem(
+                            destination = destination,
+                            selected = selectedDestination == destination,
+                            reducedMotion = reducedMotion,
+                            onClick = { onSelectDestination(destination) },
+                            modifier = Modifier.weight(1f),
+                        )
+                    }
                 }
             }
 
@@ -123,6 +157,7 @@ private fun DockNavItem(
     selected: Boolean,
     reducedMotion: Boolean,
     onClick: () -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     val colors = OpenCultTheme.colors
     val iconColor by animateColorAsState(
@@ -130,17 +165,11 @@ private fun DockNavItem(
         animationSpec = OpenCultMotion.pressFeedback(reducedMotion),
         label = "dock_icon_${destination.route}",
     )
-    val pillBg by animateColorAsState(
-        targetValue = if (selected) colors.dockActivePill else colors.dockBackground.copy(alpha = 0f),
-        animationSpec = OpenCultMotion.pressFeedback(reducedMotion),
-        label = "dock_pill_${destination.route}",
-    )
 
     Box(
-        modifier = Modifier
-            .size(width = 50.dp, height = 48.dp)
+        modifier = modifier
+            .height(48.dp)
             .clip(OpenCultTheme.shapes.pill)
-            .background(pillBg, OpenCultTheme.shapes.pill)
             .openCultMicroPress(
                 pressedScale = OpenCultMotion.RowPressScale,
                 role = Role.Tab,

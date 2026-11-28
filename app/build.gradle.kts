@@ -12,7 +12,11 @@ plugins {
 
 fun loadDotEnvPublicOnly(envFile: File): Map<String, String> {
     if (!envFile.exists()) return emptyMap()
-    val allowedKeys = setOf("OPENCULT_SUPABASE_URL", "OPENCULT_SUPABASE_ANON_KEY")
+    val allowedKeys = setOf(
+        "OPENCULT_SUPABASE_URL",
+        "OPENCULT_SUPABASE_ANON_KEY",
+        "OPENCULT_TURNSTILE_SITE_KEY",
+    )
     val result = mutableMapOf<String, String>()
     envFile.forEachLine { rawLine ->
         val line = rawLine.trim()
@@ -38,6 +42,7 @@ fun escapeBuildConfig(raw: String): String =
 val dotEnv = loadDotEnvPublicOnly(rootProject.file(".env.local"))
 val supabaseUrl = (dotEnv["OPENCULT_SUPABASE_URL"] ?: System.getenv("OPENCULT_SUPABASE_URL") ?: "").trim()
 val supabaseAnonKey = (dotEnv["OPENCULT_SUPABASE_ANON_KEY"] ?: System.getenv("OPENCULT_SUPABASE_ANON_KEY") ?: "").trim()
+val turnstileSiteKey = (dotEnv["OPENCULT_TURNSTILE_SITE_KEY"] ?: System.getenv("OPENCULT_TURNSTILE_SITE_KEY") ?: "").trim()
 
 if (supabaseUrl.isNotEmpty() && !supabaseUrl.startsWith("https://")) {
     throw GradleException("OPENCULT_SUPABASE_URL must use https:// (found non-HTTPS scheme)")
@@ -89,13 +94,14 @@ android {
         applicationId = "org.opencult.scale"
         minSdk = 31
         targetSdk = 36
-        versionCode = 2
-        versionName = "0.2.0"
+        versionCode = 3
+        versionName = "0.3.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField("String", "SUPABASE_URL", "\"${escapeBuildConfig(supabaseUrl)}\"")
         buildConfigField("String", "SUPABASE_ANON_KEY", "\"${escapeBuildConfig(supabaseAnonKey)}\"")
+        buildConfigField("String", "TURNSTILE_SITE_KEY", "\"${escapeBuildConfig(turnstileSiteKey)}\"")
     }
 
     signingConfigs {
